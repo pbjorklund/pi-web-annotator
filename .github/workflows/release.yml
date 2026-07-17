@@ -1,17 +1,25 @@
-name: Release to Firefox Add-ons
+name: Release Firefox add-on
 
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: firefox-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
 
 jobs:
-  sign:
+  release:
+    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out release tag
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -20,10 +28,21 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Validate and build
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: npm run release:validate -- "$RELEASE_TAG"
+
+      - name: Test, lint, and build
         run: npm run package
+
+      - name: Attach unsigned package to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" web-ext-artifacts/*.zip --clobber
 
       - name: Submit listed version to Firefox Add-ons
         run: npm run sign:listed
@@ -31,10 +50,20 @@ jobs:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
 
-      - name: Upload signing artifacts
+      - name: Attach signed package when immediately available
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          artifacts=(web-ext-artifacts/*.xpi)
+          if [[ -e "${artifacts[0]}" ]]; then
+            gh release upload "$RELEASE_TAG" "${artifacts[@]}" --clobber
+          fi
+
+      - name: Preserve signing artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: pi-web-annotator-signing
+          name: pi-web-annotator-${{ github.event.release.tag_name }}
           path: web-ext-artifacts/*
           if-no-files-found: warn

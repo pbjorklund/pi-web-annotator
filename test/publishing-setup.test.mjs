@@ -10,6 +10,8 @@ test('repository contains the Firefox publishing surface', async () => {
   const manifest = await readJson('extension/manifest.json');
   const packageJson = await readJson('package.json');
   const metadata = await readJson('amo-metadata.json');
+  const releaseWorkflow = await readText('.github/workflows/release.yml');
+  const releasing = await readText('docs/RELEASING.md');
 
   assert.equal(manifest.name, 'Web Annotator for Pi');
   assert.equal(manifest.browser_specific_settings.gecko.id, 'pi-web-annotator@pbjorklund.com');
@@ -28,6 +30,20 @@ test('repository contains the Firefox publishing surface', async () => {
   assert.equal(packageJson.private, undefined);
   assert.deepEqual(packageJson.files, ['pi-extension/']);
   assert.equal(packageJson.publishConfig.access, 'public');
+  assert.equal(packageJson.scripts['release:validate'], 'node scripts/validate-release.mjs');
+
+  assert.match(releaseWorkflow, /^\s*release:\s*$/m);
+  assert.match(releaseWorkflow, /^\s*types: \[published\]\s*$/m);
+  assert.doesNotMatch(releaseWorkflow, /workflow_dispatch/);
+  assert.match(releaseWorkflow, /^\s*contents: write\s*$/m);
+  assert.match(releaseWorkflow, /github\.event\.release\.tag_name/);
+  assert.doesNotMatch(releaseWorkflow, /run:.*github\.event\.release\.tag_name/);
+  assert.match(releaseWorkflow, /npm run release:validate/);
+  assert.match(releaseWorkflow, /gh release upload/);
+  assert.match(releaseWorkflow, /npm run sign:listed/);
+  assert.match(releasing, /gh release create/);
+  assert.match(releasing, /release\.published/);
+  assert.doesNotMatch(releasing, /run the .*workflow/i);
 
   assert.deepEqual(metadata.categories.firefox, ['web-development']);
   assert.deepEqual(metadata.version.compatibility, ['firefox']);

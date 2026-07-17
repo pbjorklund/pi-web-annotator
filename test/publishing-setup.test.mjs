@@ -10,6 +10,7 @@ test('repository contains the Firefox publishing surface', async () => {
   const manifest = await readJson('extension/manifest.json');
   const packageJson = await readJson('package.json');
   const metadata = await readJson('amo-metadata.json');
+  const ciWorkflow = await readText('.github/workflows/ci.yml');
   const releaseWorkflow = await readText('.github/workflows/release.yml');
   const releasing = await readText('docs/RELEASING.md');
 
@@ -41,6 +42,10 @@ test('repository contains the Firefox publishing surface', async () => {
   assert.match(releaseWorkflow, /npm run release:validate/);
   assert.match(releaseWorkflow, /gh release upload/);
   assert.match(releaseWorkflow, /npm run sign:listed/);
+  for (const workflow of [ciWorkflow, releaseWorkflow]) {
+    assert.doesNotMatch(workflow, /uses: actions\/[\w-]+@v\d+/);
+    assert.match(workflow, /uses: actions\/[\w-]+@[0-9a-f]{40}/);
+  }
   assert.match(releasing, /gh release create/);
   assert.match(releasing, /release\.published/);
   assert.doesNotMatch(releasing, /run the .*workflow/i);

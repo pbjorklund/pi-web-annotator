@@ -1,0 +1,55 @@
+{
+  "name": "pi-web-annotator",
+  "version": "1.6.0",
+  "description": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.",
+  "keywords": [
+    "firefox-extension",
+    "pi-package",
+    "web-annotation",
+    "webpage-feedback",
+    "markdown"
+  ],
+  "files": [
+    "pi-extension/"
+  ],
+  "scripts": {
+    "dev": "web-ext run --source-dir extension",
+    "dev:zen": "node scripts/prepare-dev-profile.mjs && web-ext run --source-dir extension --firefox /usr/bin/zen-browser --firefox-profile \"$HOME/.zen/2el4bbvx.Default (release)\" --keep-profile-changes",
+    "test": "node test/validate-extension.mjs && node --no-warnings --test test/annotation-server.test.mjs test/annotation-storage.test.mjs test/background-bridge.test.mjs test/pi-extension.test.mjs test/prepare-dev-profile.test.mjs test/publishing-setup.test.mjs && node --check extension/annotation-storage.js && node --check extension/background.js && node --check extension/web-annotator.js && node --check extension/consent.js",
+    "lint": "web-ext lint --source-dir extension --warnings-as-errors",
+    "build": "web-ext build --source-dir extension --artifacts-dir web-ext-artifacts --filename pi-web-annotator-${npm_package_version}.zip --overwrite-dest",
+    "package": "npm test && npm run lint && npm run build",
+    "sign:listed": "node --env-file-if-exists=.env node_modules/web-ext/bin/web-ext.js sign --source-dir extension --artifacts-dir web-ext-artifacts --channel listed --amo-metadata amo-metadata.json --approval-timeout 0 --no-input"
+  },
+  "pi": {
+    "extensions": [
+      "./pi-extension/index.ts"
+    ]
+  },
+  "devDependencies": {
+    "web-ext": "10.5.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pbjorklund/pi-web-annotator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pbjorklund/pi-web-annotator/issues"
+  },
+  "homepage": "https://pi.dev/packages/pi-web-annotator",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,40 @@
+name: Release to Firefox Add-ons
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate and build
+        run: npm run package
+
+      - name: Submit listed version to Firefox Add-ons
+        run: npm run sign:listed
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+
+      - name: Upload signing artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pi-web-annotator-signing
+          path: web-ext-artifacts/*
+          if-no-files-found: warn

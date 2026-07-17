@@ -1,0 +1,32 @@
+{
+  "categories": {
+    "firefox": [
+      "web-development"
+    ]
+  },
+  "default_locale": "en-US",
+  "description": {
+    "en-US": "Review a web page without leaving Firefox. Click an element or select text, write a change request, and collect structured annotations across page navigation. Copy the result as Markdown or JSON for Pi, or send it directly through the optional local bridge.\n\nThe Pi bridge can queue one annotation or a whole review batch in the active Pi session and report queued, active, and completed states in the browser. After Firefox consent and a send action, the extension sends annotation content to Pi on 127.0.0.1. Pi may then send it to the model provider configured by the user. Saved annotations use Firefox extension storage, isolated from page scripts. The extension is unavailable in private windows."
+  },
+  "homepage": {
+    "en-US": "https://github.com/pbjorklund/pi-web-annotator"
+  },
+  "is_experimental": false,
+  "name": {
+    "en-US": "Web Annotator for Pi"
+  },
+  "requires_payment": false,
+  "summary": {
+    "en-US": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown."
+  },
+  "version": {
+    "compatibility": [
+      "firefox"
+    ],
+    "approval_notes": "The Firefox extension source is shipped directly from extension/ with no compilation, minification, generated code, or remote code. The XPI includes LICENSE and THIRD_PARTY_NOTICES.md for the upstream MIT-licensed code. On first installation, it opens the bundled welcome.html page with usage and optional Pi setup instructions. The optional Pi integration sends user-created annotation data only after an explicit action and Firefox data-sharing consent. The extension connects to Pi at http://127.0.0.1:17373; Pi may then send the content to the model provider configured by the user. The separate pi-extension/ directory is not included in the Firefox package. Firefox for Android is unsupported and excluded from this version's compatibility metadata. The extension is unavailable in private windows and stores annotations in Firefox extension storage, isolated from page scripts.",
+    "license": "MIT",
+    "release_notes": {
+      "en-US": "Initial Firefox Add-ons release with element and text annotations, cross-page collections, Markdown and JSON export, keyboard shortcuts, and an optional local Pi bridge."
+    }
+  }
+}

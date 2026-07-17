@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">Browser annotations</title>
+  <desc id="description">A white annotation bubble on a green rounded square.</desc>
+  <rect x="4" y="4" width="120" height="120" rx="32" fill="#10a37f"/>
+  <path d="M36 27h56c9.4 0 17 7.6 17 17v31c0 9.4-7.6 17-17 17H62l-22 16 5-16h-9c-9.4 0-17-7.6-17-17V44c0-9.4 7.6-17 17-17Z" fill="#fff"/>
+  <path d="M42 49h44M42 69h32" fill="none" stroke="#08745c" stroke-width="10" stroke-linecap="round"/>
+</svg>

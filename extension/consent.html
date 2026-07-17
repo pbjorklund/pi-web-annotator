@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect Web Annotator for Pi to Pi</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+    body { margin: 0; background: Canvas; color: CanvasText; }
+    main { max-width: 36rem; margin: 4rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.75rem; line-height: 1.2; }
+    li { margin-block: .5rem; }
+    button { border: 0; border-radius: .5rem; padding: .75rem 1rem; background: #087f5b; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+    button:hover { background: #066747; }
+    button:focus-visible { outline: 3px solid #69dbb4; outline-offset: 3px; }
+    button:disabled { cursor: wait; opacity: .7; }
+    #status { min-height: 1.5rem; font-weight: 600; }
+    .privacy { color: GrayText; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Connect Web Annotator for Pi to Pi</h1>
+    <p>Sending an annotation shares these details with the Pi process on your computer:</p>
+    <ul>
+      <li>the page URL and title;</li>
+      <li>the selected element, text, and nearby source;</li>
+      <li>the note you wrote.</li>
+    </ul>
+    <p>This data first goes to Pi at <code>127.0.0.1</code>. The extension does not send it to the developer or an analytics service. Pi may then send the annotation content to your configured model provider.</p>
+    <p class="privacy">Firefox controls this optional permission. You can remove it later from the extension's Permissions and data settings.</p>
+    <button id="allow" type="button">Allow sending to local Pi</button>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+  <script src="consent.js"></script>
+</body>
+</html>

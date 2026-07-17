@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get started with Web Annotator for Pi and Pi</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.6 system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: Canvas; color: CanvasText; }
+    main { width: min(48rem, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 4rem; }
+    .eyebrow { margin: 0 0 .5rem; color: #087f5b; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { max-width: 14ch; margin: 0; font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1.05; }
+    .intro { max-width: 42rem; margin: 1.25rem 0 2rem; font-size: 1.15rem; }
+    section { margin-top: 1rem; padding: 1.25rem 1.5rem; border: 1px solid color-mix(in srgb, CanvasText 22%, Canvas); border-radius: .75rem; background: color-mix(in srgb, Canvas 94%, #087f5b); }
+    h2 { margin: 0 0 .5rem; font-size: 1.25rem; }
+    p, ol { margin-block: .5rem; }
+    li + li { margin-top: .4rem; }
+    a { color: #087f5b; font-weight: 700; }
+    a:focus-visible { outline: 3px solid #087f5b; outline-offset: 3px; border-radius: .15rem; }
+    pre { margin: .75rem 0; padding: .9rem 1rem; overflow-x: auto; border-radius: .5rem; background: #111827; color: #f8fafc; font: .9rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .note { color: GrayText; }
+    @media (prefers-color-scheme: dark) {
+      .eyebrow, a { color: #69dbb4; }
+      a:focus-visible { outline-color: #69dbb4; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Web Annotator for Pi</p>
+    <h1>Turn page feedback into Pi tasks</h1>
+    <p class="intro">Mark an element or a passage in Firefox, describe the change, then copy it to Pi or send it directly to your active Pi session.</p>
+
+    <section aria-labelledby="start-heading">
+      <h2 id="start-heading">1. Start annotating</h2>
+      <ol>
+        <li>Open a normal web page, then select Web Annotator for Pi from the Firefox extensions menu. Pin it to the toolbar for one-click access.</li>
+        <li>Select the toolbar icon or press <kbd>Alt+Shift+A</kbd>.</li>
+        <li>Click an element, or switch to <strong>Text</strong> and select a passage.</li>
+        <li>Write the change you want and select <strong>Save</strong>.</li>
+      </ol>
+      <p class="note">Firefox blocks extensions on protected pages such as <code>about:</code>, the Add-ons site, PDFs, and <code>view-source:</code> pages.</p>
+    </section>
+
+    <section aria-labelledby="connect-heading">
+      <h2 id="connect-heading">2. Connect Pi</h2>
+      <p>If Pi is not installed, follow the instructions at <a href="https://pi.dev">pi.dev</a>. Review the <a href="https://github.com/pbjorklund/pi-web-annotator">Web Annotator for Pi package source</a>, then install it:</p>
+      <pre><code>pi install npm:pi-web-annotator</code></pre>
+      <p>Restart Pi and start the local annotation bridge:</p>
+      <pre><code>/annotation-server start</code></pre>
+    </section>
+
+    <section aria-labelledby="send-heading">
+      <h2 id="send-heading">3. Send feedback</h2>
+      <p>Use <strong>Save and send</strong> for a new annotation, the arrow beside one saved annotation, or <strong>Send to Pi</strong> for every pending annotation.</p>
+      <p>The first send opens a separate consent page. Firefox will show exactly which page details can be shared. Nothing is sent until you approve that access and send again.</p>
+    </section>
+  </main>
+</body>
+</html>

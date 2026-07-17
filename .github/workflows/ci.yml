@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test, lint, and build
+        run: npm run package
+
+      - name: Upload unsigned Firefox package
+        uses: actions/upload-artifact@v7
+        with:
+          name: pi-web-annotator-unsigned
+          path: web-ext-artifacts/*.zip
+          if-no-files-found: error

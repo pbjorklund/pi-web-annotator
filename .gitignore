@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+target/
+web-ext-artifacts/
+playwright-report/
+test-results/
+*.zip
+*.o
+*.so
+
+# Environment
+.env
+.env.local
+
+# Workflow tools
+.af/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

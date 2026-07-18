@@ -18,38 +18,6 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 - **Keyboard workflow:** annotate, pause capture, switch modes, copy, save, and dismiss without leaving the page.
 - **Local-first operation:** no account, analytics, advertising, remote code, or developer-operated service.
 
-## Demo
-
-![A browser annotation sent to Pi and applied to the demo page](artwork/demo/pi-web-annotator-demo.gif)
-
-[Watch the full-size MP4 recording](artwork/demo/pi-web-annotator-demo.mp4).
-
-The repository includes a local release-planning page with stable annotation targets. Run the page, Firefox extension, and an isolated Pi session in separate terminals:
-
-```bash
-npm run demo:serve
-npm run demo:browser
-npm run demo:pi
-```
-
-`demo:pi` starts Pi from `demo/`, keeps the session ephemeral, ignores parent context and project resources, and enables only read, edit, and write tools. The model provider still receives annotations that you explicitly send.
-
-Generate the four browser screenshots with the real annotation content script and a local bridge simulation:
-
-```bash
-npm run screenshots
-```
-
-Record the complete browser-to-agent flow with one public fixture annotation:
-
-```bash
-npm run demo:video
-```
-
-The video runner starts Pi in RPC mode inside a temporary copy of `demo/`, blocks file tools from leaving that workspace, sends the browser annotation through the real loopback bridge, verifies the model's file edit after reload, renders the actual RPC events beside the browser, and encodes an MP4 plus the animated README preview. This command sends one public fixture annotation to your configured model provider.
-
-See [demo/README.md](demo/README.md) for the storyboard, exact commands, safety limits, and capture details.
-
 ## Install
 
 ### Firefox Add-ons

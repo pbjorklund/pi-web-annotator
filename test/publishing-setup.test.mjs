@@ -150,12 +150,11 @@ test('development files document the publishing setup', async () => {
 
   const readme = await readText('README.md');
   assert.match(readme, /^# Web Annotator for Pi/m);
-  assert.match(readme, /## Demo/);
-  assert.match(readme, /npm run demo:video/);
+  assert.doesNotMatch(readme, /^## Demo$/m);
+  assert.doesNotMatch(readme, /npm run demo:/);
+  assert.doesNotMatch(readme, /artwork\/demo\/|demo\/README\.md/);
   assert.match(readme, /img\.shields\.io\/badge\/Firefox-Download_extension/);
   assert.match(readme, /addons\.mozilla\.org\/en-US\/firefox\/addon\/web-annotator-for-pi/);
-  assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.gif/);
-  assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.mp4/);
   assert.match(readme, /## Privacy/);
   assert.match(readme, /## Attribution/);
   assert.match(readme, /THIRD_PARTY_NOTICES\.md/);

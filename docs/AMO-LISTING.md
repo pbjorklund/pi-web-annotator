@@ -34,9 +34,9 @@ With the optional local Pi bridge you can:
 
 The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage, isolated from page scripts. After Firefox consent and a send action, the extension sends annotation content to Pi on `127.0.0.1`. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
 
-## Release notes for 1.6.0
+## Release notes for 1.6.1
 
-Initial Firefox Add-ons release with element and text annotations, cross-page collections, Markdown and JSON export, keyboard shortcuts, and an optional local Pi bridge.
+Adds demo media for the Pi package gallery and verifies provenance-backed npm publishing. Firefox annotation behavior is unchanged.
 
 ## Privacy policy
 

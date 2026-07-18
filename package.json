@@ -1,6 +1,6 @@
 {
   "name": "pi-web-annotator",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.",
   "keywords": [
     "firefox-extension",

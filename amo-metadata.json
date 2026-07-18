@@ -26,7 +26,7 @@
     "approval_notes": "The Firefox extension source is shipped directly from extension/ with no compilation, minification, generated code, or remote code. The XPI includes LICENSE and THIRD_PARTY_NOTICES.md for the upstream MIT-licensed code. On first installation, it opens the bundled welcome.html page with usage and optional Pi setup instructions. The optional Pi integration sends user-created annotation data only after an explicit action and Firefox data-sharing consent. The extension connects to Pi at http://127.0.0.1:17373; Pi may then send the content to the model provider configured by the user. The separate pi-extension/ directory is not included in the Firefox package. Firefox for Android is unsupported and excluded from this version's compatibility metadata. The extension is unavailable in private windows and stores annotations in Firefox extension storage, isolated from page scripts.",
     "license": "MIT",
     "release_notes": {
-      "en-US": "Initial Firefox Add-ons release with element and text annotations, cross-page collections, Markdown and JSON export, keyboard shortcuts, and an optional local Pi bridge."
+      "en-US": "Adds demo media for the Pi package gallery and verifies provenance-backed npm publishing. Firefox annotation behavior is unchanged."
     }
   }
 }

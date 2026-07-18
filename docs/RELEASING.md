@@ -1,6 +1,6 @@
-# Release the Firefox add-on
+# Release the Firefox add-on and Pi package
 
-A published GitHub Release is the release command. It creates the version tag, stores the unsigned review package, and triggers listed submission to Firefox Add-ons.
+A published GitHub Release is the release command. It creates the version tag, publishes the Pi package to npm, stores the unsigned review package, and triggers listed submission to Firefox Add-ons.
 
 Do not publish a release until the security gate, package gate, and listing review pass.
 
@@ -12,6 +12,16 @@ Add these repository secrets:
 - `WEB_EXT_API_SECRET`
 
 The release workflow reads only those two AMO credentials. Keep the local `.env` ignored.
+
+After the first npm version exists, configure npm trusted publishing for `pi-web-annotator`:
+
+- provider: GitHub Actions;
+- organization or user: `pbjorklund`;
+- repository: `pi-web-annotator`;
+- workflow filename: `release.yml`;
+- allowed action: `npm publish`.
+
+Do not add an npm token to GitHub. Trusted publishing uses short-lived OIDC credentials and adds npm provenance. In the npm package settings, require two-factor authentication and disallow token-based publishing after the trusted publisher succeeds once.
 
 ## Prepare a version
 
@@ -70,10 +80,11 @@ The workflow:
 1. checks out the release tag;
 2. rejects a tag that differs from `package.json` or `extension/manifest.json`;
 3. runs tests, Firefox lint, and the package build;
-4. attaches the unsigned ZIP to the GitHub Release;
-5. submits the listed version to Firefox Add-ons;
-6. attaches a signed XPI when AMO returns one immediately;
-7. preserves all signing artifacts in the workflow run.
+4. publishes the Pi package to npm with OIDC and provenance;
+5. attaches the unsigned ZIP to the GitHub Release;
+6. submits the listed version to Firefox Add-ons;
+7. attaches a signed XPI when AMO returns one immediately;
+8. preserves all signing artifacts in the workflow run.
 
 Prereleases do not submit to AMO.
 
@@ -82,6 +93,7 @@ Check the run before announcing the release:
 ```bash
 gh run list --repo pbjorklund/pi-web-annotator --workflow release.yml --limit 5
 gh release view v<version> --repo pbjorklund/pi-web-annotator
+npm view pi-web-annotator@<version> version
 ```
 
 AMO review can continue after the workflow finishes. The unsigned ZIP on GitHub is a review artifact, not an installable release for normal Firefox users.

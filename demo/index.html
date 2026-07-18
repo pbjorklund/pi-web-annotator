@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Orbit release workspace</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to release workspace</a>
+
+  <header class="site-header">
+    <a class="brand" href="#main-content" aria-label="Orbit home">
+      <span class="brand-mark" aria-hidden="true">O</span>
+      <span>Orbit</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a class="active" href="#overview">Overview</a>
+      <a href="#work-items">Work items</a>
+      <a href="#activity">Activity</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-button" type="button" aria-label="Open notifications">
+        <span aria-hidden="true">3</span>
+      </button>
+      <span class="avatar" aria-label="Signed in as Maya Chen">MC</span>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" id="overview" aria-labelledby="release-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Release workspace · v2.8</p>
+        <h1 id="release-title">Bring the release plan into focus.</h1>
+        <p id="release-summary" class="lede">Two small decisions still block Friday's launch. Review the open work, settle the owner, and publish with a clear record.</p>
+        <div class="hero-actions">
+          <button class="primary-button" type="button" data-testid="publish-release">Publish release</button>
+          <button class="secondary-button" type="button">Share review</button>
+        </div>
+      </div>
+
+      <aside class="release-card" aria-label="Release status">
+        <div class="release-card-header">
+          <div>
+            <p class="label">Current release</p>
+            <h2>Orbit 2.8</h2>
+          </div>
+          <span class="status"><span aria-hidden="true"></span>On track</span>
+        </div>
+        <dl class="release-facts">
+          <div>
+            <dt>Target</dt>
+            <dd>Friday, 16:00</dd>
+          </div>
+          <div>
+            <dt>Owner</dt>
+            <dd>Maya Chen</dd>
+          </div>
+          <div>
+            <dt>Readiness</dt>
+            <dd>82%</dd>
+          </div>
+        </dl>
+        <div class="progress" aria-label="Release readiness: 82 percent">
+          <span style="width: 82%"></span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="metrics" aria-label="Release measures">
+      <article>
+        <p>Ready</p>
+        <strong>18</strong>
+        <span>work items</span>
+      </article>
+      <article>
+        <p>Needs review</p>
+        <strong>4</strong>
+        <span>work items</span>
+      </article>
+      <article>
+        <p>Blocked</p>
+        <strong>2</strong>
+        <span>decisions</span>
+      </article>
+      <article>
+        <p>Changed today</p>
+        <strong>7</strong>
+        <span>updates</span>
+      </article>
+    </section>
+
+    <div class="workspace-grid">
+      <section class="work-panel" id="work-items" aria-labelledby="work-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Critical path</p>
+            <h2 id="work-heading">Work that decides the date</h2>
+          </div>
+          <button class="text-button" type="button">View all 24 items</button>
+        </div>
+
+        <div class="board" aria-label="Release work by state">
+          <section class="board-column" aria-labelledby="review-heading">
+            <header>
+              <h3 id="review-heading">Needs review</h3>
+              <span>2</span>
+            </header>
+            <article class="task-card priority-high">
+              <div class="task-meta"><span>AUTH-184</span><span>High</span></div>
+              <h4>Confirm session timeout copy</h4>
+              <p>Legal and product need one final wording pass.</p>
+              <footer><span class="avatar small">AK</span><span>Today</span></footer>
+            </article>
+            <article class="task-card">
+              <div class="task-meta"><span>PAY-92</span><span>Medium</span></div>
+              <h4>Review payment retry states</h4>
+              <p>Check the failed-card and delayed-bank paths.</p>
+              <footer><span class="avatar small">RS</span><span>Tomorrow</span></footer>
+            </article>
+          </section>
+
+          <section class="board-column" aria-labelledby="progress-heading">
+            <header>
+              <h3 id="progress-heading">In progress</h3>
+              <span>2</span>
+            </header>
+            <article class="task-card">
+              <div class="task-meta"><span>CORE-311</span><span>Medium</span></div>
+              <h4>Cut the release candidate</h4>
+              <p>Build, sign, and attach the candidate artifacts.</p>
+              <footer><span class="avatar small">MC</span><span>2h left</span></footer>
+            </article>
+            <article class="task-card">
+              <div class="task-meta"><span>DOC-77</span><span>Low</span></div>
+              <h4>Publish migration notes</h4>
+              <p>Add the final database rollback example.</p>
+              <footer><span class="avatar small">NL</span><span>4h left</span></footer>
+            </article>
+          </section>
+
+          <section class="board-column" aria-labelledby="done-heading">
+            <header>
+              <h3 id="done-heading">Ready</h3>
+              <span>18</span>
+            </header>
+            <article class="task-card complete">
+              <div class="task-meta"><span>API-206</span><span>Done</span></div>
+              <h4>Freeze the public API schema</h4>
+              <p>Contract tests pass against the release candidate.</p>
+              <footer><span class="avatar small">JT</span><span>09:42</span></footer>
+            </article>
+            <article class="task-card complete">
+              <div class="task-meta"><span>OPS-51</span><span>Done</span></div>
+              <h4>Verify rollback dashboard</h4>
+              <p>Alerts and service checks are visible to on-call.</p>
+              <footer><span class="avatar small">IO</span><span>08:15</span></footer>
+            </article>
+          </section>
+        </div>
+      </section>
+
+      <aside class="activity-panel" id="activity" aria-labelledby="activity-heading">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Live record</p>
+            <h2 id="activity-heading">Recent activity</h2>
+          </div>
+        </div>
+        <ol class="activity-list">
+          <li>
+            <span class="activity-dot"></span>
+            <div><strong>Maya</strong> approved the release candidate.<time datetime="2026-07-18T09:42">8 min ago</time></div>
+          </li>
+          <li>
+            <span class="activity-dot amber"></span>
+            <div><strong>Anton</strong> requested a copy change in AUTH-184.<time datetime="2026-07-18T09:31">19 min ago</time></div>
+          </li>
+          <li>
+            <span class="activity-dot"></span>
+            <div><strong>Release bot</strong> completed 142 checks.<time datetime="2026-07-18T09:12">38 min ago</time></div>
+          </li>
+          <li>
+            <span class="activity-dot muted"></span>
+            <div><strong>Nora</strong> attached the migration guide.<time datetime="2026-07-18T08:54">56 min ago</time></div>
+          </li>
+        </ol>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

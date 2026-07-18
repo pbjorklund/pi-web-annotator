@@ -5,6 +5,24 @@ import { annotationJobMarker } from '../pi-extension/server.mjs';
 
 const HEADER = { 'x-pi-web-annotator': '1', 'content-type': 'application/json' };
 
+test('demo sandbox blocks file tools outside the demo workspace', async () => {
+  const { default: registerSandbox } = await import('../pi-extension/demo-sandbox.ts');
+  const handlers = {};
+  registerSandbox({ on(name, handler) { handlers[name] = handler; } });
+  const ctx = { cwd: '/tmp/pi-web-annotator-demo' };
+
+  assert.equal(await handlers.tool_call({ toolName: 'read', input: { path: 'index.html' } }, ctx), undefined);
+  assert.equal(await handlers.tool_call({ toolName: 'edit', input: { path: './styles.css' } }, ctx), undefined);
+  assert.deepEqual(
+    await handlers.tool_call({ toolName: 'read', input: { path: '../private.txt' } }, ctx),
+    { block: true, reason: 'Demo file tools are limited to the temporary demo workspace' },
+  );
+  assert.deepEqual(
+    await handlers.tool_call({ toolName: 'write', input: { path: '/etc/example' } }, ctx),
+    { block: true, reason: 'Demo file tools are limited to the temporary demo workspace' },
+  );
+});
+
 test('Pi extension queues browser jobs as follow-ups and tracks progress', async (t) => {
   process.env.PI_WEB_ANNOTATOR_PORT = '17374';
   const { default: registerExtension } = await import('../pi-extension/index.ts');

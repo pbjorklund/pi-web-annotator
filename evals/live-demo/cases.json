@@ -1,0 +1,15 @@
+[
+  {
+    "id": "replace-release-heading",
+    "version": 1,
+    "privacy": "public",
+    "split": "dev",
+    "category": "browser-to-agent-edit",
+    "selector": "#release-title",
+    "annotation": "In index.html, replace this heading with \"Release with confidence.\"",
+    "originalText": "Bring the release plan into focus.",
+    "expectedText": "Release with confidence.",
+    "requiredAnyTool": ["edit", "write"],
+    "minimumVideoBytes": 100000
+  }
+]

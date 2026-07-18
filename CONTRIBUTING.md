@@ -47,6 +47,9 @@ npm test          # Contract, integration, and syntax checks
 npm run lint      # Firefox extension validation
 npm run build     # Unsigned ZIP in web-ext-artifacts/
 npm run package   # Test, lint, and build
+npm run demo:serve # Serve the local annotation target
+npm run screenshots # Rebuild committed demo screenshots
+npm run demo:video # Run one model-backed RPC smoke case and rebuild the MP4
 ```
 
 ## Make a change
@@ -66,8 +69,10 @@ extension/        Firefox package source, shipped without a build step
 pi-extension/     Optional local Pi package and loopback server
 scripts/          Development and packaging helpers
 test/             Node-based contract and integration tests
-artwork/          Source icon
+artwork/          Source icon and generated demo screenshots
+demo/             Safe local page used for demos and captures
 docs/             AMO listing and release guidance
+evals/            Model-backed demo cases and deterministic graders
 ```
 
 ## Pull requests

@@ -1,0 +1,30 @@
+{
+  "name": "live-browser-pi-rpc-demo",
+  "version": 1,
+  "evidenceScope": "smoke run",
+  "layers": {
+    "0": "case fixture and deterministic grader calibration",
+    "1": "RPC isolation and video metadata contracts",
+    "3": "Pi RPC and tool-call trace",
+    "4": "browser-visible file edit and MP4 artifact"
+  },
+  "budget": {
+    "cases": 1,
+    "trials": 1,
+    "annotations": 1,
+    "wallTimeSeconds": 180,
+    "thinkingLevel": "low",
+    "allowedTools": ["read", "edit", "write"],
+    "autoRetry": false
+  },
+  "acceptance": {
+    "requiredPassedCases": 1,
+    "requiredAgentSettled": true,
+    "requiredTemporaryWorkspace": true,
+    "requiredEphemeralSession": true,
+    "requiredPathSandbox": true,
+    "videoFormat": "mp4",
+    "videoWidth": 1600,
+    "videoHeight": 900
+  }
+}

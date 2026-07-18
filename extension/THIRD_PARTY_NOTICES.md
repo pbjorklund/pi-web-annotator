@@ -21,6 +21,8 @@ These direct tools are used to develop, test, package, or host integrations. The
 | Tool | Role | License | Source |
 | --- | --- | --- | --- |
 | web-ext | Firefox validation, packaging, and signing | MPL-2.0 | <https://github.com/mozilla/web-ext> |
+| Playwright | Repeatable demo interaction and screenshot capture | Apache-2.0 | <https://github.com/microsoft/playwright> |
+| FFmpeg | Demo video encoding | GPL-3.0-or-later | <https://ffmpeg.org/> |
 | Pi Coding Agent | Optional host for the Pi extension | MIT | <https://github.com/earendil-works/pi> |
 
 Dependency versions are recorded in `package.json` and `package-lock.json`.

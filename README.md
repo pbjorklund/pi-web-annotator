@@ -18,7 +18,9 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 ## Demo
 
-![Web annotations queued and completed in Pi](artwork/screenshots/pi-workflow.png)
+![A browser annotation sent to Pi and applied to the demo page](artwork/demo/pi-web-annotator-demo.gif)
+
+[Watch the full-size MP4 recording](artwork/demo/pi-web-annotator-demo.mp4).
 
 The repository includes a local release-planning page with stable annotation targets. Run the page, Firefox extension, and an isolated Pi session in separate terminals:
 
@@ -42,7 +44,7 @@ Record the complete browser-to-agent flow with one public fixture annotation:
 npm run demo:video
 ```
 
-The video runner starts Pi in RPC mode inside a temporary copy of `demo/`, blocks file tools from leaving that workspace, sends the browser annotation through the real loopback bridge, verifies the model's file edit after reload, renders the actual RPC events beside the browser, and encodes an MP4. This command sends one public fixture annotation to your configured model provider.
+The video runner starts Pi in RPC mode inside a temporary copy of `demo/`, blocks file tools from leaving that workspace, sends the browser annotation through the real loopback bridge, verifies the model's file edit after reload, renders the actual RPC events beside the browser, and encodes an MP4 plus the animated README preview. This command sends one public fixture annotation to your configured model provider.
 
 See [demo/README.md](demo/README.md) for the storyboard, exact commands, safety limits, and capture details.
 

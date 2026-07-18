@@ -19,6 +19,7 @@
     "demo:browser": "node scripts/run-demo-browser.mjs",
     "demo:pi": "cd demo && pi --no-session --no-context-files --no-extensions --no-skills --no-prompt-templates --no-themes --no-approve --tools read,edit,write -e ../pi-extension/index.ts \"/annotation-server start\"",
     "demo:video": "python3 evals/live-demo/run.py",
+    "demo:gif": "node scripts/encode-demo-gif.mjs",
     "screenshots": "node scripts/capture-screenshots.mjs",
     "test": "node test/validate-extension.mjs && node --no-warnings --test test/annotation-server.test.mjs test/annotation-storage.test.mjs test/background-bridge.test.mjs test/npm-publishing.test.mjs test/pi-extension.test.mjs test/prepare-dev-profile.test.mjs test/publishing-setup.test.mjs test/release-version.test.mjs && node --check extension/annotation-storage.js && node --check extension/background.js && node --check extension/web-annotator.js && node --check extension/consent.js",
     "lint": "web-ext lint --source-dir extension --warnings-as-errors",

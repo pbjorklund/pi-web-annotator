@@ -30,6 +30,7 @@ test('publishing metadata describes the Firefox package', async () => {
   assert.equal(packageJson.scripts.screenshots, 'node scripts/capture-screenshots.mjs');
   assert.equal(packageJson.scripts['demo:serve'], 'node scripts/serve-demo.mjs');
   assert.equal(packageJson.scripts['demo:video'], 'python3 evals/live-demo/run.py');
+  assert.equal(packageJson.scripts['demo:gif'], 'node scripts/encode-demo-gif.mjs');
   assert.match(packageJson.scripts['demo:pi'], /^cd demo && pi /);
   assert.match(packageJson.scripts['sign:listed'], /--env-file-if-exists=\.env/);
   assert.match(packageJson.scripts['sign:listed'], /--channel listed/);
@@ -96,6 +97,7 @@ test('publishing surface includes required release and demo files', async () => 
     'demo/index.html',
     'demo/styles.css',
     'scripts/capture-screenshots.mjs',
+    'scripts/encode-demo-gif.mjs',
     'scripts/pi-rpc-client.mjs',
     'scripts/record-live-demo.mjs',
     'scripts/run-demo-browser.mjs',
@@ -104,6 +106,7 @@ test('publishing surface includes required release and demo files', async () => 
     'evals/live-demo/eval.json',
     'evals/live-demo/run.py',
     'pi-extension/demo-sandbox.ts',
+    'artwork/demo/pi-web-annotator-demo.gif',
     'artwork/demo/pi-web-annotator-demo.mp4',
     'artwork/screenshots/annotation-editor.png',
     'artwork/screenshots/annotation-panel.png',
@@ -132,7 +135,8 @@ test('development files document the publishing setup', async () => {
   assert.match(readme, /^# Web Annotator for Pi/m);
   assert.match(readme, /## Demo/);
   assert.match(readme, /npm run demo:video/);
-  assert.match(readme, /artwork\/screenshots\/pi-workflow\.png/);
+  assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.gif/);
+  assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.mp4/);
   assert.match(readme, /## Privacy/);
   assert.match(readme, /## Attribution/);
   assert.match(readme, /THIRD_PARTY_NOTICES\.md/);
@@ -153,6 +157,9 @@ test('development files document the publishing setup', async () => {
   assert.match(demo, /id="release-title"/);
   assert.match(demo, /data-testid="publish-release"/);
   assert.doesNotMatch(demo, /<script|https?:\/\//i);
+
+  const evalRunner = await readText('evals/live-demo/run.py');
+  assert.match(evalRunner, /encode-demo-gif\.mjs/);
 
   const recorder = await readText('scripts/record-live-demo.mjs');
   for (const marker of [

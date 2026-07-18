@@ -50,7 +50,7 @@ The Python eval runner performs one end-to-end smoke case:
 4. Use Playwright to annotate the heading and send the request.
 5. Render Pi's RPC notifications, tool calls, and final text in a terminal pane beside the browser.
 6. Wait for `agent_settled`, verify the file edit, reload the browser, and check the new heading.
-7. Encode `artwork/demo/pi-web-annotator-demo.mp4` with FFmpeg.
+7. Encode the full-size MP4 and the animated GIF used in the GitHub README with FFmpeg.
 
 The case uses public fixture text and sends one annotation to your configured model provider. It does not save a Pi session or preserve the temporary workspace. The video omits model reasoning, raw prompts, absolute temporary paths, credentials, and unrelated machine state.
 

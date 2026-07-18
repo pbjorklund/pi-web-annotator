@@ -172,6 +172,23 @@ def main():
             print(json.dumps(result, indent=2), file=sys.stderr)
             return 1
 
+        gif_output = output.with_suffix(".gif")
+        try:
+            subprocess.run(
+                [
+                    "node",
+                    str(ROOT / "scripts" / "encode-demo-gif.mjs"),
+                    str(output),
+                    str(gif_output),
+                ],
+                cwd=ROOT,
+                timeout=60,
+                check=True,
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+            print(f"README GIF encoding failed: {error}", file=sys.stderr)
+            return 1
+
         runtime = report["runtime"]
         usage = report.get("usage", {})
         print("Live demo eval: PASS")
@@ -179,6 +196,7 @@ def main():
         print(f"Tools: {', '.join(report['outcome']['toolCalls'])}")
         print(f"Cost: ${usage.get('cost', 0):.4f}")
         print(f"Video: {output} ({report['video']['bytes']} bytes)")
+        print(f"README GIF: {gif_output}")
         print("Evidence: one end-to-end smoke run")
         return 0
 

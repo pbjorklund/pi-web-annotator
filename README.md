@@ -24,7 +24,7 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 [Download Web Annotator for Pi from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/). The listing is under Mozilla review and may return a not-found page until approval. The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
 
-To test the extension before the listing is approved, follow the temporary installation steps in [CONTRIBUTING.md](CONTRIBUTING.md).
+To test the extension before the listing is approved, follow the temporary installation steps in [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md).
 
 ## Use
 
@@ -109,7 +109,7 @@ pi -e ./pi-extension/index.ts
 
 Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations use Firefox extension storage, isolated from page scripts. The optional Pi bridge sends selected annotation data to Pi on `127.0.0.1` after explicit Firefox consent and a send action. Pi may then send that content to the model provider configured by the user.
 
-Annotations can contain page URLs, visible or selected text, element metadata, and your notes. Do not annotate secrets. Read [PRIVACY.md](PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
+Annotations can contain page URLs, visible or selected text, element metadata, and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
 
 ## Permissions
 
@@ -124,10 +124,10 @@ Annotations can contain page URLs, visible or selected text, element metadata, a
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) before opening a pull request.
 
 ## Attribution
 
 Web Annotator for Pi began as a Firefox port of [kuzmany/browser-annotations](https://github.com/kuzmany/browser-annotations) by Zdeno Kuzmany. This project retains and builds on the upstream product idea, overlay design, and parts of the original content-script implementation. It has since added Firefox-specific packaging and navigation, cross-page collections, source-aware and text annotations, consent and privacy controls, publishing tooling, and the optional Pi workflow.
 
-The project is available under the [MIT License](LICENSE), which preserves the upstream and current maintainer copyright notices. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the upstream code attribution and licenses for development tools.
+The project is available under the [MIT License](https://github.com/pbjorklund/pi-web-annotator/blob/main/LICENSE), which preserves the upstream and current maintainer copyright notices. See [THIRD_PARTY_NOTICES.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/THIRD_PARTY_NOTICES.md) for the upstream code attribution and licenses for development tools.

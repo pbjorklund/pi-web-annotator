@@ -155,6 +155,10 @@ test('development files document the publishing setup', async () => {
   assert.doesNotMatch(readme, /artwork\/demo\/|demo\/README\.md/);
   assert.match(readme, /img\.shields\.io\/badge\/Firefox-Download_extension/);
   assert.match(readme, /addons\.mozilla\.org\/en-US\/firefox\/addon\/web-annotator-for-pi/);
+  for (const path of ['CONTRIBUTING.md', 'PRIVACY.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md']) {
+    assert.match(readme, new RegExp(`https://github\\.com/pbjorklund/pi-web-annotator/blob/main/${path}`));
+    assert.doesNotMatch(readme, new RegExp(`\\]\\(${path.replaceAll('.', '\\.')}\\)`));
+  }
   assert.match(readme, /## Privacy/);
   assert.match(readme, /## Attribution/);
   assert.match(readme, /THIRD_PARTY_NOTICES\.md/);

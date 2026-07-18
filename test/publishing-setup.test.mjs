@@ -135,6 +135,8 @@ test('development files document the publishing setup', async () => {
   assert.match(readme, /^# Web Annotator for Pi/m);
   assert.match(readme, /## Demo/);
   assert.match(readme, /npm run demo:video/);
+  assert.match(readme, /img\.shields\.io\/badge\/Firefox-Download_extension/);
+  assert.match(readme, /addons\.mozilla\.org\/en-US\/firefox\/addon\/web-annotator-for-pi/);
   assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.gif/);
   assert.match(readme, /artwork\/demo\/pi-web-annotator-demo\.mp4/);
   assert.match(readme, /## Privacy/);

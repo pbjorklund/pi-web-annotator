@@ -2,6 +2,8 @@
 
 Annotate webpage elements or text, send targeted change requests to [Pi](https://pi.dev), or copy them as Markdown.
 
+[![Download the extension from Firefox Add-ons](https://img.shields.io/badge/Firefox-Download_extension-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/)
+
 Web Annotator for Pi adds an on-page review layer to Firefox. Click an element or select text, write the change you want, and keep reviewing across reloads and page navigation. Copy one note or the whole collection for Pi, or use the optional local bridge to queue annotations in the active Pi session and see progress in Firefox.
 
 ## Features
@@ -52,7 +54,7 @@ See [demo/README.md](demo/README.md) for the storyboard, exact commands, safety 
 
 ### Firefox Add-ons
 
-The signed Firefox Add-ons listing is being prepared. The AMO link will be added here after approval. The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
+[Download Web Annotator for Pi from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/). The listing is under Mozilla review and may return a not-found page until approval. The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
 
 To test the extension before the listing is approved, follow the temporary installation steps in [CONTRIBUTING.md](CONTRIBUTING.md).
 

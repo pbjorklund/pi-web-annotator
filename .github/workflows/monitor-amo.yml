@@ -1,0 +1,75 @@
+name: Monitor Firefox Add-ons listing
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+concurrency:
+  group: monitor-firefox-addons-listing
+  cancel-in-progress: false
+
+env:
+  AMO_URL: https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the public listing
+        id: listing
+        shell: bash
+        run: |
+          page="$(mktemp)"
+          status="$(curl --location --silent --show-error --retry 3 --connect-timeout 10 --max-time 30 --output "$page" --write-out '%{http_code}' "$AMO_URL")"
+          if [[ "$status" == "200" ]] && grep --extended-regexp --quiet '<title[^>]*>Web Annotator for Pi( –| -)' "$page"; then
+            echo 'live=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "Firefox Add-ons listing is not public yet (HTTP $status)."
+            echo 'live=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out repository
+        if: steps.listing.outputs.live == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Announce the listing and stop monitoring
+        if: steps.listing.outputs.live == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          pending = ' The listing is under Mozilla review and may return a not-found page until approval.'
+          text = path.read_text(encoding='utf-8')
+          path.write_text(text.replace(pending, '', 1), encoding='utf-8')
+          PY
+
+          if ! git diff --quiet -- README.md; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add README.md
+            git commit -m 'docs: mark Firefox listing as available'
+            git push
+          fi
+
+          issue_title='Firefox Add-ons listing is live'
+          if ! gh issue list --state all --search "${issue_title} in:title" --json title --jq '.[].title' | grep --fixed-strings --line-regexp --quiet "$issue_title"; then
+            gh issue create \
+              --title "$issue_title" \
+              --body "Mozilla has published Web Annotator for Pi: $AMO_URL" \
+              --assignee "$GITHUB_REPOSITORY_OWNER"
+          fi
+
+          gh api \
+            --method PUT \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/monitor-amo.yml/disable"

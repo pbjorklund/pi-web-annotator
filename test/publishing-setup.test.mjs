@@ -73,11 +73,27 @@ test('published releases trigger the Firefox publishing workflow', async () => {
   assert.doesNotMatch(releasing, /run the .*workflow/i);
 });
 
+test('Firefox Add-ons monitor announces approval and disables itself', async () => {
+  const monitorWorkflow = await readText('.github/workflows/monitor-amo.yml');
+
+  assert.match(monitorWorkflow, /^\s*schedule:\s*$/m);
+  assert.match(monitorWorkflow, /^\s*- cron: '[^']+'\s*$/m);
+  assert.match(monitorWorkflow, /https:\/\/addons\.mozilla\.org\/en-US\/firefox\/addon\/web-annotator-for-pi\//);
+  assert.match(monitorWorkflow, /Web Annotator for Pi/);
+  assert.match(monitorWorkflow, /^\s*actions: write\s*$/m);
+  assert.match(monitorWorkflow, /^\s*contents: write\s*$/m);
+  assert.match(monitorWorkflow, /^\s*issues: write\s*$/m);
+  assert.match(monitorWorkflow, /git push/);
+  assert.match(monitorWorkflow, /gh issue create/);
+  assert.match(monitorWorkflow, /actions\/workflows\/monitor-amo\.yml\/disable/);
+});
+
 test('GitHub workflows pin actions to full commit SHAs', async () => {
   const ciWorkflow = await readText('.github/workflows/ci.yml');
   const releaseWorkflow = await readText('.github/workflows/release.yml');
+  const monitorWorkflow = await readText('.github/workflows/monitor-amo.yml');
 
-  for (const workflow of [ciWorkflow, releaseWorkflow]) {
+  for (const workflow of [ciWorkflow, releaseWorkflow, monitorWorkflow]) {
     assert.doesNotMatch(workflow, /uses: actions\/[\w-]+@v\d+/);
     assert.match(workflow, /uses: actions\/[\w-]+@[0-9a-f]{40}/);
   }
@@ -87,6 +103,7 @@ test('publishing surface includes required release and demo files', async () => 
   await assertPathsExist([
     '.github/workflows/ci.yml',
     '.github/workflows/release.yml',
+    '.github/workflows/monitor-amo.yml',
     '.env.example',
     'CONTRIBUTING.md',
     'PRIVACY.md',

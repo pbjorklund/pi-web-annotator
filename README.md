@@ -22,7 +22,7 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 ### Firefox Add-ons
 
-[Download Web Annotator for Pi from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/). The listing is under Mozilla review and may return a not-found page until approval. The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
+[Download Web Annotator for Pi from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/). The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
 
 To test the extension before the listing is approved, follow the temporary installation steps in [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md).
 

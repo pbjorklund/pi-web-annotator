@@ -121,3 +121,7 @@ assert.doesNotMatch(content, /localStorage\.setItem/);
 assert.doesNotMatch(content, /m\.push\("css "/);
 assert.doesNotMatch(content, /m\.push\("color "/);
 assert.doesNotMatch(content, /m\.push\("bg "/);
+// Panel position dropdown — 4-corner presets persisted per profile.
+assert.match(content, /#bh-panel\[data-pos=\\"br\\"\]/);
+assert.match(content, /"Position"/);
+assert.match(content, /pi-web-annotator:panel-pos:v1/);

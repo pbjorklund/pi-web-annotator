@@ -19,9 +19,11 @@
   } catch (e) {}
 
   // targetMode: "element" = click DOM elements | "text" = select words/sentences.
+  // pos: which corner the panel+toast anchor to — "tl"|"tr"|"bl"|"br" (default "br").
   var S = (window[NS] = { installed: true, ready: false, items: [],
     mode: (typeof window.__piWebAnnotatorStartMode === "boolean" ? window.__piWebAnnotatorStartMode : true),
-    targetMode: "element" });
+    targetMode: "element",
+    pos: "br" });
   function pageKey() { return location.origin + location.pathname + location.search + location.hash; }
   function pageUrl() { return location.href; }
   function normalizeItem(a) {
@@ -40,6 +42,31 @@
   var seq = 0;
 
   function save() { itemStore.save(S.items).catch(function () {}); }
+
+  // Persisted panel corner ("tl"|"tr"|"bl"|"br"). browser.storage.local keeps it
+  // per-profile across navigations (page localStorage is not used for this pref).
+  var POS_KEY = "pi-web-annotator:panel-pos:v1";
+  var POS_VALID = ["tl", "tr", "bl", "br"];
+  function loadPanelPos() {
+    return new Promise(function (resolve) {
+      var b = globalThis.browser;
+      if (!b || !b.storage || !b.storage.local) return resolve("br");
+      try {
+        b.storage.local.get(POS_KEY).then(function (r) {
+          var v = r && r[POS_KEY];
+          resolve(POS_VALID.indexOf(v) >= 0 ? v : "br");
+        }, function () { resolve("br"); });
+      } catch (e) { resolve("br"); }
+    });
+  }
+  function savePanelPos(pos) {
+    try {
+      var b = globalThis.browser;
+      if (b && b.storage && b.storage.local) {
+        var o = {}; o[POS_KEY] = pos; b.storage.local.set(o).catch(function () {});
+      }
+    } catch (e) {}
+  }
   function isCurrentPage(a) { return (a.pageKey || "") === pageKey(); }
   function cssEsc(s) { return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^\w-]/g, "\\$&"); }
   function isUniq(sel) { try { return document.querySelectorAll(sel).length === 1; } catch (e) { return false; } }
@@ -112,7 +139,14 @@
     ".bh-btn:disabled{cursor:not-allowed;opacity:.45;transform:none}" +
     ".bh-btn.p{background:" + ACCENT + ";color:" + HDR + "}.bh-btn.p:hover{background:" + ACCENT_H + "}" +
     ".bh-btn.s{background:transparent;color:" + MUT + ";border-color:" + BORD + "}.bh-btn.s:hover{background:" + SURF + ";color:" + TXT + "}" +
-    "#bh-panel{position:fixed;right:16px;bottom:16px;z-index:" + (Z + 2) + ";width:500px;max-width:calc(100vw - 32px);max-height:48vh;display:flex;flex-direction:column;background:" + BG + ";color:" + TXT + ";border:1px solid " + BORD + ";border-radius:18px;box-shadow:0 18px 56px rgba(0,0,0,.55),0 0 0 1px " + BORD_S + ";overflow:hidden;animation:bh-rise .24s cubic-bezier(.22,1,.36,1) both}" +
+    "#bh-panel{position:fixed;z-index:" + (Z + 2) + ";width:500px;max-width:calc(100vw - 32px);max-height:48vh;display:flex;flex-direction:column;background:" + BG + ";color:" + TXT + ";border:1px solid " + BORD + ";border-radius:18px;box-shadow:0 18px 56px rgba(0,0,0,.55),0 0 0 1px " + BORD_S + ";overflow:hidden;animation:bh-rise .24s cubic-bezier(.22,1,.36,1) both}" +
+    // Panel corner anchor via data-pos. !important defends against host CSS overrides
+    // (some sites pin #bh-panel to the wrong corner). The unset edges free the panel
+    // from conflicting anchors so only the chosen pair is active.
+    "#bh-panel[data-pos=\"tl\"]{top:16px!important;left:16px!important;right:auto!important;bottom:auto!important}" +
+    "#bh-panel[data-pos=\"tr\"]{top:16px!important;right:16px!important;left:auto!important;bottom:auto!important}" +
+    "#bh-panel[data-pos=\"bl\"]{bottom:16px!important;left:16px!important;top:auto!important;right:auto!important}" +
+    "#bh-panel[data-pos=\"br\"]{bottom:16px!important;right:16px!important;top:auto!important;left:auto!important}" +
     "#bh-panel .h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;background:" + HDR + ";border-bottom:1px solid " + BORD + "}" +
     "#bh-panel .h .dot{width:8px;height:8px;border-radius:50%;background:#666;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.08);transition:background .15s ease,box-shadow .15s ease}" +
     "#bh-panel .h .dot.connected{background:" + ACCENT + ";box-shadow:0 0 0 3px rgba(16,163,127,.18)}" +
@@ -144,9 +178,30 @@
     "#bh-list .it .send:not(:disabled){color:" + ACCENT_H + "}" +
     "#bh-list .it .x{border-color:transparent;color:#6e6e6e}#bh-list .it .x:hover{color:" + ACCENT + "}" +
     "#bh-panel button:focus-visible,#bh-panel input:focus-visible{outline:2px solid " + ACCENT_H + ";outline-offset:2px}" +
-    "#bh-toast{position:fixed;right:16px;bottom:calc(48vh + 28px);z-index:" + (Z + 4) + ";max-width:min(360px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(16,163,127,.45);border-radius:12px;background:" + HDR + ";color:" + TXT + ";box-shadow:0 10px 32px rgba(0,0,0,.45);font:12px/1.4 " + FONT + ";opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}" +
+    "#bh-toast{position:fixed;z-index:" + (Z + 4) + ";max-width:min(360px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(16,163,127,.45);border-radius:12px;background:" + HDR + ";color:" + TXT + ";box-shadow:0 10px 32px rgba(0,0,0,.45);font:12px/1.4 " + FONT + ";opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}" +
+    // Toast tracks the panel corner (offset = panel max-height + 28px). !important
+    // for the same host-override defense as the panel.
+    "#bh-toast[data-pos=\"tl\"]{top:calc(48vh + 28px)!important;left:16px!important;right:auto!important;bottom:auto!important}" +
+    "#bh-toast[data-pos=\"tr\"]{top:calc(48vh + 28px)!important;right:16px!important;left:auto!important;bottom:auto!important}" +
+    "#bh-toast[data-pos=\"bl\"]{bottom:calc(48vh + 28px)!important;left:16px!important;top:auto!important;right:auto!important}" +
+    "#bh-toast[data-pos=\"br\"]{bottom:calc(48vh + 28px)!important;right:16px!important;top:auto!important;left:auto!important}" +
     "#bh-toast.show{opacity:1;transform:none}" +
-    "#bh-panel .f{padding:10px 14px;border-top:1px solid " + BORD + ";font:11px/1.3 " + FONT + ";color:" + MUT + ";display:flex;justify-content:space-between;gap:8px;background:" + HDR + "}";
+    "#bh-panel .f{padding:10px 14px;border-top:1px solid " + BORD + ";font:11px/1.3 " + FONT + ";color:" + MUT + ";display:flex;justify-content:space-between;gap:8px;background:" + HDR + "}" +
+    // Footer position dropdown trigger — inherits .f text style; minimal overrides so
+    // it reads as the same kind of muted hint text but with an interactive caret.
+    "#bh-panel .f .fpos{font:inherit;color:" + MUT + ";background:transparent;border:none;padding:0;cursor:pointer;letter-spacing:inherit;transition:color .12s ease}" +
+    "#bh-panel .f .fpos:hover{color:" + TXT + "}" +
+    "#bh-panel .f .fpos .arw{display:inline-block;margin-left:2px;transition:transform .14s ease}" +
+    "#bh-panel .f .fpos[aria-expanded=\"true\"] .arw{transform:rotate(180deg)}" +
+    // Position dropdown menu — rendered in document.body (panel has overflow:hidden
+    // so a child menu would be clipped). Styled to match the header pill buttons.
+    "#bh-posmenu{position:fixed;z-index:" + (Z + 3) + ";min-width:160px;background:" + HDR + ";border:1px solid " + BORD + ";border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);overflow:hidden;padding:4px;font:600 12px/1 " + FONT + ";display:none}" +
+    "#bh-posmenu.open{display:block;animation:bh-fade .14s ease both}" +
+    "#bh-posmenu .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;border:none;background:transparent;color:" + MUT + ";width:100%;padding:8px 10px;border-radius:8px;text-align:left;letter-spacing:.2px;transition:background .12s ease,color .12s ease}" +
+    "#bh-posmenu .opt:hover{background:" + SURF + ";color:" + TXT + "}" +
+    "#bh-posmenu .opt.active{color:" + ACCENT + "}" +
+    "#bh-posmenu .opt .mk{opacity:0;font:700 12px/1 " + FONT + "}" +
+    "#bh-posmenu .opt.active .mk{opacity:1}";
 
   // ---------- element helpers ----------
   function el(tag, attrs) { var n = document.createElement(tag); n.setAttribute("data-bh-ui", "1"); if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]); return n; }
@@ -191,11 +246,80 @@
   bCopy.textContent = "Copy"; bSend.textContent = "Send to Pi"; bSend.disabled = true; bClear.textContent = "Clear";
   ph.appendChild(piDot); ph.appendChild(pTitle);
   ph.appendChild(el("span", { class: "sp" })); ph.appendChild(bCopy); ph.appendChild(bSend); ph.appendChild(bTarget); ph.appendChild(bMode); ph.appendChild(bClear);
+  // Position dropdown. Lives in document.body (panel has overflow:hidden) and is
+  // anchored above its footer trigger via getBoundingClientRect on open.
+  var posMenu = el("div", { id: "bh-posmenu", role: "menu", "aria-label": "Panel position" });
+  var POS_OPTS = [
+    { v: "tl", label: "Top-Left" },
+    { v: "tr", label: "Top-Right" },
+    { v: "bl", label: "Bottom-Left" },
+    { v: "br", label: "Bottom-Right" }
+  ];
+  var posOptEls = {};
+  POS_OPTS.forEach(function (o) {
+    var b = el("button", { class: "opt", role: "menuitem", "data-pos-val": o.v });
+    var lab = el("span"); lab.textContent = o.label;
+    var mk = el("span", { class: "mk" }); mk.textContent = "✓";
+    b.appendChild(lab); b.appendChild(mk);
+    b.addEventListener("click", function (e) { e.stopPropagation(); selectPos(o.v); });
+    posMenu.appendChild(b);
+    posOptEls[o.v] = b;
+  });
+  function applyPos() {
+    if (!panel) return;
+    var v = POS_VALID.indexOf(S.pos) >= 0 ? S.pos : "br";
+    panel.dataset.pos = v;
+    if (toast) toast.dataset.pos = v;
+    for (var k in posOptEls) posOptEls[k].classList.toggle("active", k === v);
+  }
+  function selectPos(v) {
+    if (POS_VALID.indexOf(v) < 0) return;
+    S.pos = v; applyPos(); savePanelPos(v); closePosMenu();
+  }
+  function onPosKey(e) { if (e.key === "Escape") closePosMenu(); }
+  function onPosOutside(e) {
+    var t = e.target;
+    if (t === posMenu || posMenu.contains(t) || t === bPos) return;
+    closePosMenu();
+  }
+  function openPosMenu() {
+    posMenu.classList.add("open");
+    bPos.setAttribute("aria-expanded", "true");
+    document.addEventListener("keydown", onPosKey, true);
+    document.addEventListener("click", onPosOutside, true);
+    // Anchor: open upward from the footer trigger. Clamp within the viewport so a
+    // trigger near the top of the screen can still show the full menu.
+    var r = bPos.getBoundingClientRect();
+    var mw = posMenu.offsetWidth || 160;
+    var vh = document.documentElement.clientHeight || window.innerHeight;
+    var mh = posMenu.offsetHeight || 0;
+    var left = Math.max(8, Math.min(r.left, (document.documentElement.clientWidth || window.innerWidth) - mw - 8));
+    var top = r.top - mh - 4;
+    posMenu.style.left = left + "px";
+    posMenu.style.top = (top < 8 ? Math.min(r.bottom + 4, vh - mh - 8) : top) + "px";
+  }
+  function closePosMenu() {
+    posMenu.classList.remove("open");
+    bPos.setAttribute("aria-expanded", "false");
+    document.removeEventListener("keydown", onPosKey, true);
+    document.removeEventListener("click", onPosOutside, true);
+  }
+  function togglePosMenu(e) {
+    e.stopPropagation();
+    if (posMenu.classList.contains("open")) closePosMenu(); else openPosMenu();
+  }
   var list = el("div", { id: "bh-list" });
   var foot = el("div", { class: "f" });
   var fLeft = document.createElement("span"); fLeft.textContent = "Copy → paste to Pi";
   var fRight = document.createElement("span"); fRight.textContent = "⌥A pause";
-  foot.appendChild(fLeft); foot.appendChild(fRight);
+  // Position dropdown trigger — a footer-styled button (no chrome, inherits .f text),
+  // with an upward caret. Sits centered between the two hint spans.
+  var bPos = el("button", { class: "fpos", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", title: "Move the panel to another corner" });
+  var bPosLabel = el("span"); bPosLabel.textContent = "Position";
+  var bPosArrow = el("span", { class: "arw" }); bPosArrow.textContent = "▲";
+  bPos.appendChild(bPosLabel); bPos.appendChild(bPosArrow);
+  bPos.addEventListener("click", togglePosMenu);
+  foot.appendChild(fLeft); foot.appendChild(bPos); foot.appendChild(fRight);
   panel.appendChild(ph); panel.appendChild(list); panel.appendChild(foot);
 
   var pinLayer = el("div", { id: "bh-pins" });
@@ -205,7 +329,8 @@
     var b = document.body || document.documentElement;
     var head = document.head || b;
     if (st.parentNode !== head) head.appendChild(st);
-    [hl, textHl, input, panel, toast, pinLayer].forEach(function (n) { if (n.parentNode !== b) b.appendChild(n); });
+    [hl, textHl, input, panel, toast, pinLayer, posMenu].forEach(function (n) { if (n.parentNode !== b) b.appendChild(n); });
+    applyPos();
     // Restore persistent text marks from saved text annotations
     restoreTextMarks();
     render();
@@ -708,6 +833,7 @@
   // ---------- render ----------
   function render() {
     if (!list || !pTitle) return;
+    applyPos();
     pTitle.textContent = "Annotations " + S.items.length;
     bMode.textContent = S.mode ? "Pause" : "Resume";
     bTarget.textContent = S.targetMode === "element" ? "Element" : "Text";
@@ -968,6 +1094,8 @@
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("mouseup", onTextSelect, true);
       document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("keydown", onPosKey, true);
+      document.removeEventListener("click", onPosOutside, true);
       window.removeEventListener("scroll", scheduleLayout, true);
       window.removeEventListener("resize", scheduleLayout);
       if (_pinRAF) { cancelAnimationFrame(_pinRAF); _pinRAF = 0; }
@@ -987,19 +1115,21 @@
           mp.removeChild(m);
         }
       } catch (e) {}
-      [st, hl, textHl, input, panel, toast, pinLayer].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
+      [st, hl, textHl, input, panel, toast, pinLayer, posMenu].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
     } catch (e) {}
     S.ready = false;
     try { delete window[NS]; } catch (e) { window[NS] = undefined; }
     return "pi-web-annotator: removed";
   };
 
-  function finishSetup(items) {
+  function finishSetup(items, pos) {
     S.items = items;
+    if (pos && POS_VALID.indexOf(pos) >= 0) S.pos = pos;
     seq = S.items.reduce(function (maximum, item) { return Math.max(maximum, item.id || 0); }, 0);
     S.ready = true;
     if (document.body) mount(); else document.addEventListener("DOMContentLoaded", mount);
   }
-  itemStore.load(normalizeItem).then(finishSetup, function () { finishSetup([]); });
+  Promise.all([itemStore.load(normalizeItem), loadPanelPos()])
+    .then(function (r) { finishSetup(r[0], r[1]); }, function () { finishSetup([], "br"); });
   return "pi-web-annotator: loading";
 })();

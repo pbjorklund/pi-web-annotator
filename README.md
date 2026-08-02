@@ -45,12 +45,6 @@ To test an unreleased change, follow the temporary installation steps in [CONTRI
 
 Text annotations use an amber highlight. Element annotations use green outlines and pins.
 
-### Move the panel
-
-Drag any empty part of the panel header to move it without pausing capture. The panel stays inside the viewport and remembers its placement across navigation. Click the **Annotations** title to cycle through the viewport corners. With the title focused, use the arrow keys to dock the panel or press `Home` to reset it to the bottom-right.
-
-[Watch the movable panel demo on the project page](https://pbjorklund.com/projects/pi-web-annotator).
-
 ### Export a review
 
 - **Copy** exports the full collection as Markdown.

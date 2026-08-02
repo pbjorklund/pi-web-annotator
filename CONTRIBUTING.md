@@ -32,6 +32,8 @@ The maintainer-specific Zen Browser workflow uses the existing Zen profile:
 npm run dev:zen
 ```
 
+This workflow reloads after source changes and runs Zen plus `web-ext` in an isolated process group. Press `Ctrl-C` once to stop both processes.
+
 ### Load into an existing browser
 
 Use this method when `web-ext` cannot find your browser or when you want to test in a browser session it did not start:

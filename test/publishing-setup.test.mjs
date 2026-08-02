@@ -65,6 +65,7 @@ test('published releases trigger the Firefox publishing workflow', async () => {
   assert.match(releaseWorkflow, /github\.event\.release\.tag_name/);
   assert.doesNotMatch(releaseWorkflow, /run:.*github\.event\.release\.tag_name/);
   assert.match(releaseWorkflow, /npm run release:validate/);
+  assert.match(releaseWorkflow, /npx playwright install --with-deps firefox/);
   assert.match(releaseWorkflow, /gh release upload/);
   assert.match(releaseWorkflow, /npm run sign:listed/);
 

@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Install Firefox for browser tests
+        run: npx playwright install --with-deps firefox
+
       - name: Validate release tag
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}

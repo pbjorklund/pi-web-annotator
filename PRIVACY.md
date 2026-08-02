@@ -6,7 +6,7 @@ Web Annotator for Pi does not send data to the developer, analytics services, ad
 
 ## Data kept in Firefox
 
-When you save an annotation, the extension stores a separate collection for that website in Firefox extension storage under a `pi-web-annotator:collection:v1:` key. Earlier development versions used the website's `localStorage`; those collections are moved to extension storage automatically. A saved item can include:
+When you save an annotation, the extension stores a separate collection for that website in Firefox extension storage under a `pi-web-annotator:collection:v1:` key. It also stores the panel's normalized screen placement under `pi-web-annotator:panel-placement:v1` so the panel remains where you moved it after navigation. Earlier development versions used the website's `localStorage`; those collections are moved to extension storage automatically. A saved item can include:
 
 - your note;
 - the page URL;
@@ -27,7 +27,7 @@ After consent and a send action, the extension sends the selected annotations to
 ## Permissions and browser access
 
 - **Active tab and scripting:** inject and remove the overlay after you use the toolbar button or shortcut.
-- **Storage:** save annotation collections in Firefox extension storage, isolated from page scripts.
+- **Storage:** save annotation collections and the panel placement preference in Firefox extension storage, isolated from page scripts.
 - **Access data for all websites:** lets the extension run on pages where you enable it and restore an enabled overlay after navigation.
 - **Optional browsing activity and website content sharing:** requested only when you send annotations to the local Pi bridge.
 - **Clipboard access through page APIs:** occurs only after a copy action and does not use a persistent clipboard permission.

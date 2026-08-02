@@ -14,7 +14,7 @@ assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
 assert.equal(packageJson.version, manifest.version);
 assert.deepEqual(packageJson.pi.extensions, ['./pi-extension/index.ts']);
 assert.equal(packageJson.scripts.dev, 'web-ext run --source-dir extension');
-assert.equal(packageJson.scripts['dev:zen'], 'node scripts/prepare-dev-profile.mjs && web-ext run --source-dir extension --firefox /usr/bin/zen-browser --firefox-profile "$HOME/.zen/2el4bbvx.Default (release)" --keep-profile-changes');
+assert.equal(packageJson.scripts['dev:zen'], 'node scripts/prepare-dev-profile.mjs && node scripts/run-zen-dev.mjs');
 assert.equal(packageJson.devDependencies['web-ext'], '10.5.0');
 assert.equal(packageJson.description, 'Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.');
 
@@ -59,7 +59,7 @@ assert.match(content, /#bh-hl-tag.*color:" \+ HDR/);
 assert.match(content, /\.bh-pin.*color:" \+ HDR/);
 assert.match(content, /\.bh-pin\.bh-pin-text\{background:#f59e0b/);
 assert.match(content, /\.bh-btn\.p.*color:" \+ HDR/);
-assert.match(content, /button:first-of-type.*color:" \+ HDR/);
+assert.match(content, /button\.bh-copy-primary.*color:" \+ HDR/);
 assert.match(content, /\.it \.n.*color:" \+ HDR/);
 assert.match(content, /textarea::placeholder\{color:" \+ MUT/);
 assert.match(content, /dom-path fallback/);

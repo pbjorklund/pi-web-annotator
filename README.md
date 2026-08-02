@@ -12,6 +12,7 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 - **Text annotations:** select a phrase or paragraph and keep the quoted text with the note.
 - **Source-friendly context:** capture stable attributes, visible text, component hints when available, and a positional fallback.
 - **Cross-page collections:** keep one review collection while navigating within the same site.
+- **Movable review panel:** drag the panel out of the way or dock it by keyboard; its placement survives navigation.
 - **Pi-ready export:** copy one annotation or the full collection as Markdown or JSON.
 - **Optional Pi workflow:** send one note, send all pending notes, or save and send in one action.
 - **Live Pi status:** distinguish pending, queued, active, and completed work.
@@ -24,7 +25,7 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 [Download Web Annotator for Pi from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/web-annotator-for-pi/). The extension supports Firefox desktop only; Firefox for Android is unsupported. After the first installation, Firefox opens a welcome tab with the annotation workflow and Pi setup commands.
 
-To test the extension before the listing is approved, follow the temporary installation steps in [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md).
+To test an unreleased change, follow the temporary installation steps in [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md).
 
 ## Use
 
@@ -43,6 +44,10 @@ To test the extension before the listing is approved, follow the temporary insta
 3. Write the requested change and save it.
 
 Text annotations use an amber highlight. Element annotations use green outlines and pins.
+
+### Move the panel
+
+Drag any empty part of the panel header to move it without pausing capture. The panel stays inside the viewport and remembers its placement across navigation. Click the **Annotations** title to cycle through the viewport corners. With the title focused, use the arrow keys to dock the panel or press `Home` to reset it to the bottom-right.
 
 ### Export a review
 
@@ -103,11 +108,13 @@ pi -e ./pi-extension/index.ts
 | `Alt+A` | Pause or resume page capture while the panel stays open. |
 | `Alt+T` | Switch between element and text mode. |
 | `Ctrl+Enter` / `Cmd+Enter` | Run the primary save action: save and send when Pi is connected, otherwise save. |
+| Arrow keys on the **Annotations** title | Dock the panel to a viewport edge. |
+| `Home` on the **Annotations** title | Reset the panel to the bottom-right. |
 | `Esc` | Cancel the open note editor. |
 
 ## Privacy
 
-Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations use Firefox extension storage, isolated from page scripts. The optional Pi bridge sends selected annotation data to Pi on `127.0.0.1` after explicit Firefox consent and a send action. Pi may then send that content to the model provider configured by the user.
+Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and the panel placement preference use Firefox extension storage, isolated from page scripts. The optional Pi bridge sends selected annotation data to Pi on `127.0.0.1` after explicit Firefox consent and a send action. Pi may then send that content to the model provider configured by the user.
 
 Annotations can contain page URLs, visible or selected text, element metadata, and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
 

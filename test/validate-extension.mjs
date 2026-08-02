@@ -59,7 +59,7 @@ assert.match(content, /#bh-hl-tag.*color:" \+ HDR/);
 assert.match(content, /\.bh-pin.*color:" \+ HDR/);
 assert.match(content, /\.bh-pin\.bh-pin-text\{background:#f59e0b/);
 assert.match(content, /\.bh-btn\.p.*color:" \+ HDR/);
-assert.match(content, /button:first-of-type.*color:" \+ HDR/);
+assert.match(content, /button\.bh-copy-primary.*color:" \+ HDR/);
 assert.match(content, /\.it \.n.*color:" \+ HDR/);
 assert.match(content, /textarea::placeholder\{color:" \+ MUT/);
 assert.match(content, /dom-path fallback/);

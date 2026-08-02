@@ -9,9 +9,12 @@ Requirements:
 
 ```bash
 npm ci
+npx playwright install firefox
 npm test
 npm run lint
 ```
+
+The Playwright-managed Firefox build runs the panel interaction test. The system Firefox installation is still used for manual extension testing.
 
 ## Run the extension
 
@@ -43,7 +46,7 @@ Temporary add-ons are removed when Firefox restarts. Firefox blocks extension in
 ## Development commands
 
 ```bash
-npm test          # Contract, integration, and syntax checks
+npm test          # Contract, Firefox interaction, integration, and syntax checks
 npm run lint      # Firefox extension validation
 npm run build     # Unsigned ZIP in web-ext-artifacts/
 npm run package   # Test, lint, and build

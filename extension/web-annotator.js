@@ -38,8 +38,18 @@
     hash: location.hash,
   });
   var seq = 0;
+  var PANEL_PLACEMENT_KEY = "pi-web-annotator:panel-placement:v1";
+  var PANEL_MARGIN = 8;
+  var panelPlacement = null;
 
   function save() { itemStore.save(S.items).catch(function () {}); }
+  function normalizePanelPlacement(value) {
+    if (!value || !isFinite(value.x) || !isFinite(value.y)) return null;
+    return { x: Math.max(0, Math.min(1, Number(value.x))), y: Math.max(0, Math.min(1, Number(value.y))) };
+  }
+  function savePanelPlacement() {
+    globalThis.browser.storage.local.set({ [PANEL_PLACEMENT_KEY]: panelPlacement }).catch(function () {});
+  }
   function isCurrentPage(a) { return (a.pageKey || "") === pageKey(); }
   function cssEsc(s) { return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^\w-]/g, "\\$&"); }
   function isUniq(sel) { try { return document.querySelectorAll(sel).length === 1; } catch (e) { return false; } }
@@ -113,17 +123,19 @@
     ".bh-btn.p{background:" + ACCENT + ";color:" + HDR + "}.bh-btn.p:hover{background:" + ACCENT_H + "}" +
     ".bh-btn.s{background:transparent;color:" + MUT + ";border-color:" + BORD + "}.bh-btn.s:hover{background:" + SURF + ";color:" + TXT + "}" +
     "#bh-panel{position:fixed;right:16px;bottom:16px;z-index:" + (Z + 2) + ";width:500px;max-width:calc(100vw - 32px);max-height:48vh;display:flex;flex-direction:column;background:" + BG + ";color:" + TXT + ";border:1px solid " + BORD + ";border-radius:18px;box-shadow:0 18px 56px rgba(0,0,0,.55),0 0 0 1px " + BORD_S + ";overflow:hidden;animation:bh-rise .24s cubic-bezier(.22,1,.36,1) both}" +
-    "#bh-panel .h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;background:" + HDR + ";border-bottom:1px solid " + BORD + "}" +
+    "#bh-panel.bh-placed{animation:none}" +
+    "#bh-panel .h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;background:" + HDR + ";border-bottom:1px solid " + BORD + ";cursor:grab;touch-action:none}" +
+    "#bh-panel .h.bh-dragging{cursor:grabbing;user-select:none}" +
     "#bh-panel .h .dot{width:8px;height:8px;border-radius:50%;background:#666;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.08);transition:background .15s ease,box-shadow .15s ease}" +
     "#bh-panel .h .dot.connected{background:" + ACCENT + ";box-shadow:0 0 0 3px rgba(16,163,127,.18)}" +
-    "#bh-panel .h .ttl{font:600 14px/1 " + FONT + ";letter-spacing:.2px;white-space:nowrap}" +
+    "#bh-panel .h .ttl{font:600 14px/1 " + FONT + ";letter-spacing:.2px;white-space:nowrap;cursor:grab;border:0;background:transparent;color:" + TXT + ";padding:3px 2px;border-radius:4px}" +
     "#bh-panel .h .sp{flex:1}" +
     "#bh-panel .h button{flex:0 0 auto;cursor:pointer;border:1px solid " + BORD + ";background:transparent;color:" + MUT + ";border-radius:999px;font:600 11px/1 " + FONT + ";padding:7px 11px;letter-spacing:.2px;transition:background .15s ease,color .15s ease,border-color .15s ease,transform .08s ease}" +
     "#bh-panel .h button:hover{background:" + SURF + ";color:" + TXT + "}" +
     "#bh-panel .h button:active{transform:translateY(1px)}" +
     "#bh-panel .h button:disabled{cursor:not-allowed;opacity:.45;transform:none}" +
-    "#bh-panel .h button:first-of-type{background:" + ACCENT + ";color:" + HDR + ";border-color:transparent}" +
-    "#bh-panel .h button:first-of-type:hover{background:" + ACCENT_H + "}" +
+    "#bh-panel .h button.bh-copy-primary{background:" + ACCENT + ";color:" + HDR + ";border-color:transparent}" +
+    "#bh-panel .h button.bh-copy-primary:hover{background:" + ACCENT_H + "}" +
     "#bh-list{overflow:auto;padding:8px}" +
     "#bh-list::-webkit-scrollbar{width:8px}#bh-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}" +
     "#bh-list .empty{padding:18px 12px;color:" + MUT + ";font:13px/1.8 " + FONT + ";text-align:left}" +
@@ -143,7 +155,7 @@
     "#bh-list .it .act:disabled{cursor:default;opacity:.32;border-color:" + BORD + ";background:transparent;color:" + MUT + "}" +
     "#bh-list .it .send:not(:disabled){color:" + ACCENT_H + "}" +
     "#bh-list .it .x{border-color:transparent;color:#6e6e6e}#bh-list .it .x:hover{color:" + ACCENT + "}" +
-    "#bh-panel button:focus-visible,#bh-panel input:focus-visible{outline:2px solid " + ACCENT_H + ";outline-offset:2px}" +
+    "#bh-panel button:focus-visible,#bh-panel input:focus-visible,#bh-panel [role=button]:focus-visible{outline:2px solid " + ACCENT_H + ";outline-offset:2px}" +
     "#bh-toast{position:fixed;right:16px;bottom:calc(48vh + 28px);z-index:" + (Z + 4) + ";max-width:min(360px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(16,163,127,.45);border-radius:12px;background:" + HDR + ";color:" + TXT + ";box-shadow:0 10px 32px rgba(0,0,0,.45);font:12px/1.4 " + FONT + ";opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}" +
     "#bh-toast.show{opacity:1;transform:none}" +
     "#bh-panel .f{padding:10px 14px;border-top:1px solid " + BORD + ";font:11px/1.3 " + FONT + ";color:" + MUT + ";display:flex;justify-content:space-between;gap:8px;background:" + HDR + "}";
@@ -184,10 +196,11 @@
     _toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 4000);
   }
   var ph = el("div", { class: "h" });
-  var pTitle = el("span", { class: "ttl" });
+  var pTitle = el("button", { class: "ttl", type: "button", "aria-label": "Annotations. Move annotation panel. Drag with the pointer, use arrow keys to dock, or press Home to reset.", title: "Drag to move · Arrow keys dock · Home resets" });
   var piDot = el("span", { class: "dot", role: "status", "aria-label": "Pi disconnected", title: "Pi disconnected" });
   var bMode = document.createElement("button"), bTarget = document.createElement("button"), bCopy = document.createElement("button"), bSend = document.createElement("button"), bClear = document.createElement("button");
   bMode.setAttribute("data-bh-ui", "1"); bTarget.setAttribute("data-bh-ui", "1"); bCopy.setAttribute("data-bh-ui", "1"); bSend.setAttribute("data-bh-ui", "1"); bClear.setAttribute("data-bh-ui", "1");
+  bCopy.className = "bh-copy-primary";
   bCopy.textContent = "Copy"; bSend.textContent = "Send to Pi"; bSend.disabled = true; bClear.textContent = "Clear";
   ph.appendChild(piDot); ph.appendChild(pTitle);
   ph.appendChild(el("span", { class: "sp" })); ph.appendChild(bCopy); ph.appendChild(bSend); ph.appendChild(bTarget); ph.appendChild(bMode); ph.appendChild(bClear);
@@ -197,6 +210,112 @@
   var fRight = document.createElement("span"); fRight.textContent = "⌥A pause";
   foot.appendChild(fLeft); foot.appendChild(fRight);
   panel.appendChild(ph); panel.appendChild(list); panel.appendChild(foot);
+
+  function applyPanelPlacement() {
+    if (!panel || !panel.parentNode) return;
+    if (!panelPlacement) {
+      panel.classList.remove("bh-placed");
+      panel.style.left = ""; panel.style.top = "";
+      panel.style.right = ""; panel.style.bottom = "";
+      return;
+    }
+    panel.classList.add("bh-placed");
+    var r = panel.getBoundingClientRect();
+    var travelX = Math.max(0, innerWidth - r.width - PANEL_MARGIN * 2);
+    var travelY = Math.max(0, innerHeight - r.height - PANEL_MARGIN * 2);
+    panel.style.right = "auto"; panel.style.bottom = "auto";
+    panel.style.left = Math.round(PANEL_MARGIN + panelPlacement.x * travelX) + "px";
+    panel.style.top = Math.round(PANEL_MARGIN + panelPlacement.y * travelY) + "px";
+  }
+  function setPanelPlacement(x, y, persist) {
+    panelPlacement = normalizePanelPlacement({ x: x, y: y });
+    applyPanelPlacement();
+    if (persist) savePanelPlacement();
+  }
+  function resetPanelPlacement() {
+    panelPlacement = null;
+    applyPanelPlacement();
+    savePanelPlacement();
+  }
+  function cyclePanelCorner() {
+    var corners = [{ x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: 0 }, { x: 1, y: 0 }];
+    var current = panelPlacement || corners[0], index = -1;
+    for (var i = 0; i < corners.length; i++) {
+      if (Math.abs(current.x - corners[i].x) < .01 && Math.abs(current.y - corners[i].y) < .01) { index = i; break; }
+    }
+    var next = corners[(index + 1) % corners.length];
+    setPanelPlacement(next.x, next.y, true);
+  }
+  function dockPanelFromKey(e) {
+    var current = panelPlacement || { x: 1, y: 1 };
+    if (e.key === "Home") { e.preventDefault(); resetPanelPlacement(); return; }
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].indexOf(e.key) < 0) return;
+    e.preventDefault();
+    if (e.key === "ArrowLeft") current.x = 0;
+    if (e.key === "ArrowRight") current.x = 1;
+    if (e.key === "ArrowUp") current.y = 0;
+    if (e.key === "ArrowDown") current.y = 1;
+    setPanelPlacement(current.x, current.y, true);
+  }
+
+  var panelDrag = null, suppressPanelClick = false;
+  function onPanelPointerDown(e) {
+    if (e.button !== 0) return;
+    var control = e.target.closest && e.target.closest("button,a,input,textarea,select,[role=button]");
+    if (control && control !== pTitle) return;
+    var r = panel.getBoundingClientRect();
+    panelDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: r.left, top: r.top, moved: false, title: control === pTitle,
+      previous: panelPlacement ? { x: panelPlacement.x, y: panelPlacement.y } : null };
+    panel.classList.add("bh-placed");
+    panel.style.right = "auto"; panel.style.bottom = "auto";
+    panel.style.left = Math.round(r.left) + "px"; panel.style.top = Math.round(r.top) + "px";
+    ph.classList.add("bh-dragging");
+    ph.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+  function onPanelPointerMove(e) {
+    if (!panelDrag || panelDrag.id !== e.pointerId) return;
+    var r = panel.getBoundingClientRect();
+    var travelX = Math.max(0, innerWidth - r.width - PANEL_MARGIN * 2);
+    var travelY = Math.max(0, innerHeight - r.height - PANEL_MARGIN * 2);
+    var left = Math.max(PANEL_MARGIN, Math.min(PANEL_MARGIN + travelX, panelDrag.left + e.clientX - panelDrag.x));
+    var top = Math.max(PANEL_MARGIN, Math.min(PANEL_MARGIN + travelY, panelDrag.top + e.clientY - panelDrag.y));
+    panelDrag.moved = panelDrag.moved || Math.abs(e.clientX - panelDrag.x) > 3 || Math.abs(e.clientY - panelDrag.y) > 3;
+    panelPlacement = { x: travelX ? (left - PANEL_MARGIN) / travelX : 0, y: travelY ? (top - PANEL_MARGIN) / travelY : 0 };
+    panel.style.left = Math.round(left) + "px"; panel.style.top = Math.round(top) + "px";
+    e.preventDefault();
+  }
+  function onPanelPointerUp(e) {
+    if (!panelDrag || panelDrag.id !== e.pointerId) return;
+    var activateTitle = panelDrag.title && !panelDrag.moved;
+    suppressPanelClick = panelDrag.moved || activateTitle;
+    if (suppressPanelClick) setTimeout(function () { suppressPanelClick = false; }, 0);
+    panelDrag = null;
+    ph.classList.remove("bh-dragging");
+    if (ph.hasPointerCapture(e.pointerId)) ph.releasePointerCapture(e.pointerId);
+    if (activateTitle) cyclePanelCorner();
+    else savePanelPlacement();
+    e.preventDefault();
+  }
+  function onPanelPointerCancel(e) {
+    if (!panelDrag || panelDrag.id !== e.pointerId) return;
+    panelPlacement = panelDrag.previous;
+    panelDrag = null;
+    suppressPanelClick = false;
+    ph.classList.remove("bh-dragging");
+    if (ph.hasPointerCapture(e.pointerId)) ph.releasePointerCapture(e.pointerId);
+    applyPanelPlacement();
+    e.preventDefault();
+  }
+  ph.addEventListener("pointerdown", onPanelPointerDown);
+  ph.addEventListener("pointermove", onPanelPointerMove);
+  ph.addEventListener("pointerup", onPanelPointerUp);
+  ph.addEventListener("pointercancel", onPanelPointerCancel);
+  pTitle.onclick = function () {
+    if (suppressPanelClick) { suppressPanelClick = false; return; }
+    cyclePanelCorner();
+  };
+  pTitle.onkeydown = dockPanelFromKey;
 
   var pinLayer = el("div", { id: "bh-pins" });
   pinLayer.style.cssText = "position:absolute;top:0;left:0;width:0;height:0;z-index:" + (Z + 1);
@@ -709,6 +828,7 @@
   function render() {
     if (!list || !pTitle) return;
     pTitle.textContent = "Annotations " + S.items.length;
+    pTitle.setAttribute("aria-label", "Annotations " + S.items.length + ". Move annotation panel. Drag with the pointer, use arrow keys to dock, or press Home to reset.");
     bMode.textContent = S.mode ? "Pause" : "Resume";
     bTarget.textContent = S.targetMode === "element" ? "Element" : "Text";
     bSend.disabled = !piConnected || pendingPiItems().length === 0;
@@ -772,6 +892,7 @@
       list.appendChild(it);
     });
     layoutPins();
+    applyPanelPlacement();
   }
 
   function layoutPins() {
@@ -811,7 +932,8 @@
   }
   document.addEventListener("keydown", onKey, true);
   window.addEventListener("scroll", scheduleLayout, true);
-  window.addEventListener("resize", scheduleLayout);
+  function onResize() { scheduleLayout(); applyPanelPlacement(); }
+  window.addEventListener("resize", onResize);
 
   // ---------- SPA route awareness ----------
   // On client-side navigation, keep the collection and only refresh page-local pins.
@@ -969,7 +1091,7 @@
       document.removeEventListener("mouseup", onTextSelect, true);
       document.removeEventListener("keydown", onKey, true);
       window.removeEventListener("scroll", scheduleLayout, true);
-      window.removeEventListener("resize", scheduleLayout);
+      window.removeEventListener("resize", onResize);
       if (_pinRAF) { cancelAnimationFrame(_pinRAF); _pinRAF = 0; }
       if (_selTimer) clearTimeout(_selTimer);
       if (_piPollTimer) { clearInterval(_piPollTimer); _piPollTimer = 0; }
@@ -1000,6 +1122,14 @@
     S.ready = true;
     if (document.body) mount(); else document.addEventListener("DOMContentLoaded", mount);
   }
-  itemStore.load(normalizeItem).then(finishSetup, function () { finishSetup([]); });
+  Promise.all([
+    itemStore.load(normalizeItem).catch(function () { return []; }),
+    globalThis.browser.storage.local.get(PANEL_PLACEMENT_KEY).then(function (stored) {
+      return normalizePanelPlacement(stored[PANEL_PLACEMENT_KEY]);
+    }, function () { return null; })
+  ]).then(function (loaded) {
+    panelPlacement = loaded[1];
+    finishSetup(loaded[0]);
+  });
   return "pi-web-annotator: loading";
 })();

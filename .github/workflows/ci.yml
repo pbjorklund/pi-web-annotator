@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Firefox for browser tests
+        run: npx playwright install --with-deps firefox
+
       - name: Test, lint, and build
         run: npm run package
 

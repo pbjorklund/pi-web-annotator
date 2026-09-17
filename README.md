@@ -6,6 +6,8 @@ Annotate webpage elements or text, send targeted change requests to [Pi](https:/
 
 Web Annotator for Pi adds an on-page review layer to Firefox. Click an element or select text, write the change you want, and keep reviewing across reloads and page navigation. Copy one note or the whole collection for Pi, or use the optional local bridge to queue annotations in the active Pi session and see progress in Firefox.
 
+Use it when visual webpage review needs exact element or selected-text context. Do not use it for automated accessibility audits, remote team review, Firefox for Android, or pages whose secrets must not enter browser storage or an agent transcript. The Firefox extension works without PI; install the bridge only when direct local delivery is useful.
+
 ## Features
 
 - **Element annotations:** point at a button, card, heading, image, or other element and attach a change request.
@@ -125,9 +127,18 @@ Annotations can contain page URLs, visible or selected text, element metadata, a
 | Optional `browsingActivity` | Allows page URLs to be included when the user sends annotations to local Pi. |
 | Optional `websiteContent` | Allows selected text and element context to be included when the user sends annotations to local Pi. |
 
-## Contributing
+## Maintain and validate
 
-Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) before opening a pull request.
+Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) before opening a pull request. Run the local release gate with:
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run release:validate
+```
+
+Use `npm run dev` for Firefox development and `pi -e ./pi-extension/index.ts` for a checkout-local bridge. Keep the Firefox manifest version, package version, AMO metadata, privacy text, and release artifacts synchronized. Update the PI bridge with `pi update npm:pi-web-annotator`, reload PI, or remove it with `pi remove npm:pi-web-annotator`; browser-extension updates remain managed by Firefox or the temporary-install workflow.
 
 ## Attribution
 

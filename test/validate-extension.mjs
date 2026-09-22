@@ -15,7 +15,7 @@ assert.equal(packageJson.version, manifest.version);
 assert.deepEqual(packageJson.pi.extensions, ['./pi-extension/index.ts']);
 assert.equal(packageJson.scripts.dev, 'web-ext run --source-dir extension');
 assert.equal(packageJson.scripts['dev:zen'], 'node scripts/prepare-dev-profile.mjs && node scripts/run-zen-dev.mjs');
-assert.equal(packageJson.devDependencies['web-ext'], '10.5.0');
+assert.equal(packageJson.devDependencies['web-ext'], '10.7.0');
 assert.equal(packageJson.description, 'Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.');
 
 assert.equal(manifest.manifest_version, 3);
@@ -70,6 +70,9 @@ assert.match(storage, /extensionStorage\.set/);
 assert.match(storage, /pageStorage\.removeItem/);
 assert.match(content, /PiWebAnnotatorStorage\.createAnnotationStorage/);
 assert.match(content, /pageUrl: pageUrl\(\)/);
+assert.match(content, /Edit this pending annotation/);
+assert.match(content, /function beginEdit\(a, e\)/);
+assert.match(content, /"aria-label": "Edit annotation " \+ a\.id/);
 assert.match(content, /Copy this annotation/);
 assert.match(content, /function copyItem\(a\)/);
 assert.match(content, /function toMarkdown\(items\)/);

@@ -15,6 +15,7 @@ Use it when visual webpage review needs exact element or selected-text context. 
 - **Source-friendly context:** capture stable attributes, visible text, component hints when available, and a positional fallback.
 - **Cross-page collections:** keep one review collection while navigating within the same site.
 - **Movable review panel:** drag the panel out of the way or dock it by keyboard; its placement survives navigation.
+- **Editable notes:** revise a pending annotation without recapturing its element or selected text.
 - **Pi-ready export:** copy one annotation or the full collection as Markdown or JSON.
 - **Optional Pi workflow:** send one note, send all pending notes, or save and send in one action.
 - **Live Pi status:** distinguish pending, queued, active, and completed work.
@@ -50,6 +51,7 @@ Text annotations use an amber highlight. Element annotations use green outlines 
 ### Export a review
 
 - **Copy** exports the full collection as Markdown.
+- The edit button on a pending row reopens its saved note.
 - The copy button on a row exports only that annotation.
 - `Alt+Shift+J` copies the collection as JSON.
 - **Clear** removes the current site's collection after confirmation.

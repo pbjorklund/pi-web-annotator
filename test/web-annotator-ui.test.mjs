@@ -161,3 +161,126 @@ test('moves, clamps, resets, and restores the annotation panel', { timeout: 30_0
   assert.ok(await header.isVisible());
   await context.close();
 });
+
+test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t) => {
+  const demo = await startDemoServer(0);
+  const browser = await firefox.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    await demo.close();
+  });
+
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  page.setDefaultTimeout(5_000);
+  await page.addInitScript(() => {
+    const prefix = '__pi_web_annotator_edit_test__';
+    globalThis.browser = {
+      storage: {
+        local: {
+          async get(key) {
+            const raw = localStorage.getItem(prefix + key);
+            return raw === null ? {} : { [key]: JSON.parse(raw) };
+          },
+          async set(values) {
+            for (const [key, value] of Object.entries(values)) {
+              localStorage.setItem(prefix + key, JSON.stringify(value));
+            }
+          },
+        },
+      },
+      runtime: {
+        async sendMessage(message) {
+          if (message.type === 'pi-web-annotator-health') {
+            globalThis.__annotationHealthCalls = (globalThis.__annotationHealthCalls || 0) + 1;
+            return { ok: true };
+          }
+          if (message.type === 'pi-web-annotator-consent') return { granted: true };
+          if (message.type === 'pi-web-annotator-send') {
+            globalThis.__lastAnnotationPrompt = message.job.prompt;
+            return new Promise((resolve) => {
+              globalThis.__finishAnnotationSend = () => resolve({ ok: true, status: 'sent' });
+            });
+          }
+          return { ok: false };
+        },
+      },
+    };
+  });
+
+  await page.goto(demo.origin, { waitUntil: 'networkidle' });
+  await injectAnnotator(page);
+
+  await page.getByRole('button', { name: 'Publish release' }).click();
+  await page.getByLabel('Annotation note').fill('Use the approved release copy.');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  const healthCallsBeforeEdit = await page.evaluate(() => globalThis.__annotationHealthCalls || 0);
+  const editButton = page.getByRole('button', { name: 'Edit annotation 1' });
+  await editButton.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Edit annotation' });
+  assert.ok(await dialog.isVisible());
+  assert.equal(await page.getByLabel('Annotation note').inputValue(), 'Use the approved release copy.');
+  assert.equal(await page.getByRole('button', { name: 'Send to Pi' }).isDisabled(), true);
+  assert.equal(await page.getByRole('button', { name: 'Send annotation 1 to Pi' }).isDisabled(), true);
+  await page.waitForFunction((previousCount) => (globalThis.__annotationHealthCalls || 0) > previousCount, healthCallsBeforeEdit);
+  assert.equal(await page.getByRole('button', { name: 'Send to Pi' }).isDisabled(), true, 'polling must not re-enable send while editing');
+  for (let index = 0; index < 12; index += 1) {
+    await page.keyboard.press('Tab');
+    const focusedName = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.getAttribute('aria-label') || active?.textContent?.trim() || '';
+    });
+    assert.doesNotMatch(focusedName, /^Send(?: annotation| to Pi)/);
+  }
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Edit annotation 1');
+
+  await page.keyboard.press('Enter');
+  await page.getByLabel('Annotation note').fill('Use the final approved release copy.');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Edit annotation 1');
+
+  assert.equal(await page.evaluate(() => globalThis.__piWebAnnotator.items[0].note), 'Use the final approved release copy.');
+  await page.waitForFunction((expected) => {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      if ((localStorage.getItem(localStorage.key(index)) || '').includes(expected)) return true;
+    }
+    return false;
+  }, 'Use the final approved release copy.');
+  await page.reload({ waitUntil: 'networkidle' });
+  await injectAnnotator(page);
+  assert.equal(await page.evaluate(() => globalThis.__piWebAnnotator.items[0].note), 'Use the final approved release copy.');
+  assert.ok(await page.getByText('Use the final approved release copy.', { exact: true }).isVisible());
+
+  await page.getByRole('button', { name: 'Edit annotation 1' }).click();
+  await page.getByLabel('Annotation note').fill('This stale edit must not be saved.');
+  await page.evaluate(() => { globalThis.__piWebAnnotator.items[0].piStatus = 'sent'; });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  assert.equal(await page.evaluate(() => globalThis.__piWebAnnotator.items[0].note), 'Use the final approved release copy.');
+  assert.ok(await page.getByText('This annotation changed state and can no longer be edited.').isVisible());
+
+  for (const status of ['sent', 'in_progress', 'completed']) {
+    await page.evaluate((nextStatus) => {
+      globalThis.__piWebAnnotator.items[0].piStatus = nextStatus;
+      globalThis.__piWebAnnotator.activate();
+    }, status);
+    assert.equal(await page.getByRole('button', { name: 'Edit annotation 1' }).isDisabled(), true, `${status} annotations must not be editable`);
+  }
+
+  await page.evaluate(() => {
+    const item = globalThis.__piWebAnnotator.items[0];
+    item.piStatus = 'pending';
+    delete item.piJobId;
+    globalThis.__piWebAnnotator.activate();
+  });
+  await page.getByRole('button', { name: 'Send annotation 1 to Pi' }).click();
+  await page.waitForFunction(() => globalThis.__piWebAnnotator.items[0].piStatus === 'sending');
+  assert.match(await page.evaluate(() => globalThis.__lastAnnotationPrompt), /Use the final approved release copy\./);
+  assert.equal(await page.getByRole('button', { name: 'Edit annotation 1' }).isDisabled(), true, 'an annotation being sent must not be editable');
+  await page.evaluate(() => globalThis.__finishAnnotationSend());
+  await page.waitForFunction(() => globalThis.__piWebAnnotator.items[0].piStatus === 'sent');
+
+  await context.close();
+});

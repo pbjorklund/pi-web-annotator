@@ -27,7 +27,7 @@
   function normalizeItem(a) {
     if (!a.pageKey) a.pageKey = pageKey();
     if (!a.pageUrl) a.pageUrl = pageUrl();
-    if (["pending", "sent", "in_progress", "completed"].indexOf(a.piStatus) < 0) a.piStatus = "pending";
+    if (["pending", "sending", "sent", "in_progress", "completed"].indexOf(a.piStatus) < 0) a.piStatus = "pending";
     return a;
   }
   var itemStore = globalThis.PiWebAnnotatorStorage.createAnnotationStorage({
@@ -185,6 +185,12 @@
   bSaveSend.disabled = true;
   inRow.appendChild(bCancel); inRow.appendChild(bSave); inRow.appendChild(bSaveSend);
   input.appendChild(inSel); input.appendChild(inTa); input.appendChild(inRow);
+  function showInputAt(anchorX, anchorY) {
+    input.style.display = "block";
+    var r = input.getBoundingClientRect();
+    input.style.left = Math.max(8, Math.min(anchorX, innerWidth - r.width - 8)) + "px";
+    input.style.top = Math.max(8, Math.min(anchorY, innerHeight - r.height - 8)) + "px";
+  }
 
   var panel = el("div", { id: "bh-panel" });
   var toast = el("div", { id: "bh-toast", role: "status", "aria-live": "polite", "aria-atomic": "true" });
@@ -567,14 +573,14 @@
     _STYLE_KEYS.forEach(function (k) { var v = cs[k]; if (v && v !== "normal" && v !== "auto" && v !== "0px" && v !== "none") o[k] = v; });
     return o;
   }
-  var pending = null;
+  var pending = null, editingItem = null;
   // Track a pending text mark in case the user cancels, so we can unwind it.
   var _pendingMarkId = null;
 
   function onClick(e) {
     if (!S.mode || S.targetMode !== "element" || isUI(e.target)) return;
-    // Clean up any pending text mark before switching to element capture
-    if (_pendingMarkId) { removeTextMark(_pendingMarkId); seq--; _pendingMarkId = null; }
+    // Drop an open editor before switching to a new element capture.
+    cancelPending();
     e.preventDefault(); e.stopPropagation();
     var t = e.target, r = t.getBoundingClientRect(), cs = getComputedStyle(t);
     var id = t.id || "", cls = classOf(t), at = attrsOf(t);
@@ -588,8 +594,8 @@
       color: cs.color, bg: cs.backgroundColor
     };
     renderTargetHint(inSel, pending); inTa.value = "";
-    var x = Math.min(e.clientX, innerWidth - 320), y = Math.min(e.clientY, innerHeight - 150);
-    input.style.left = Math.max(8, x) + "px"; input.style.top = Math.max(8, y) + "px"; input.style.display = "block";
+    showInputAt(e.clientX, e.clientY);
+    input.setAttribute("aria-label", "Add annotation");
     inTa.placeholder = "Note for this element…";
     setTimeout(function () { inTa.focus(); }, 0);
   }
@@ -650,8 +656,8 @@
       context = ctxCapped.text;
     }
 
-    // Clean up any previous pending mark before creating a new one
-    if (_pendingMarkId) { removeTextMark(_pendingMarkId); seq--; }
+    // Clean up any previous capture or edit before creating a new one.
+    cancelPending();
     // Pre-assign ID so we can create the mark immediately
     var annoId = ++seq;
     var mark = wrapSelection(range.cloneRange(), annoId);
@@ -678,17 +684,50 @@
     };
 
     renderTargetHint(inSel, pending); inTa.value = "";
-    var x = Math.min(lastRect.right + 8, innerWidth - 320),
-        y = Math.min(lastRect.bottom + 8, innerHeight - 150);
-    input.style.left = Math.max(8, x) + "px"; input.style.top = Math.max(8, y) + "px";
-    input.style.display = "block";
+    showInputAt(lastRect.right + 8, lastRect.bottom + 8);
+    input.setAttribute("aria-label", "Add annotation");
     inTa.placeholder = "Note for this text…";
     setTimeout(function () { inTa.focus(); }, 0);
   }
 
+  function focusEditButton(id) {
+    setTimeout(function () {
+      var control = list.querySelector("[data-bh-edit-id='" + String(id) + "']");
+      if (control && !control.disabled) control.focus();
+    }, 0);
+  }
+
+  function beginEdit(a, e) {
+    if (a.piStatus !== "pending") return;
+    cancelPending();
+    var r = e.currentTarget.getBoundingClientRect();
+    editingItem = a;
+    render();
+    renderTargetHint(inSel, a);
+    inTa.value = a.note || "";
+    input.setAttribute("aria-label", "Edit annotation");
+    inTa.placeholder = "Edit annotation note…";
+    var anchorX = e.clientX || r.left, anchorY = e.clientY || r.bottom;
+    showInputAt(anchorX, anchorY);
+    bSaveSend.disabled = true;
+    setTimeout(function () { inTa.focus(); }, 0);
+  }
+
   function commit() {
-    if (!pending) return;
+    if (!pending && !editingItem) return;
     var note = inTa.value.trim(); if (!note) { cancel(); return; }
+    if (editingItem) {
+      if (editingItem.piStatus !== "pending") {
+        showToast("This annotation changed state and can no longer be edited.");
+        cancelPending(); pTitle.focus();
+        return;
+      }
+      var edited = editingItem;
+      edited.note = note;
+      editingItem = null; input.style.display = "none";
+      save(); render(); focusEditButton(edited.id);
+      return edited;
+    }
     if (pending.type === "text") {
       // ID already assigned during capture; just set remaining fields
       pending.note = note; pending.ts = Date.now();
@@ -704,17 +743,21 @@
     return item;
   }
 
-  function cancelPending() {
-    // Clean up pending state (text mark + element pending) without touching mode.
+  function cancelPending(restoreEditFocus) {
+    // Clean up pending state (text mark, element capture, or edit) without touching mode.
+    var editId = editingItem && editingItem.id;
     if (_pendingMarkId) { removeTextMark(_pendingMarkId); seq--; _pendingMarkId = null; }
-    pending = null; input.style.display = "none";
+    pending = null; editingItem = null; input.style.display = "none";
+    if (editId != null) render();
+    if (restoreEditFocus && editId != null) focusEditButton(editId);
   }
-  function cancel() { cancelPending(); }
+  function cancel() { cancelPending(true); }
 
   // ---------- Pi bridge ----------
   var piConnected = false, _piPollTimer = 0, _piPollBusy = false;
   function pendingPiItems() { return S.items.filter(function (a) { return a.piStatus === "pending"; }); }
   function piStatusLabel(status) {
+    if (status === "sending") return "Sending to Pi";
     if (status === "sent") return "Sent to Pi";
     if (status === "in_progress") return "In progress in Pi";
     if (status === "completed") return "Completed";
@@ -726,7 +769,7 @@
     piDot.classList.toggle("connected", connected);
     piDot.setAttribute("aria-label", connected ? "Pi connected" : "Pi disconnected");
     piDot.title = connected ? "Pi connected" : "Pi disconnected";
-    bSend.disabled = !connected || pendingPiItems().length === 0;
+    bSend.disabled = !connected || pendingPiItems().length === 0 || !!editingItem;
     if (connectionChanged) render();
   }
   async function sendPiBridge(message) {
@@ -750,9 +793,9 @@
         var next = a.piJobId && response.jobs[a.piJobId];
         if (next && next !== a.piStatus) {
           if (next === "completed") completedIds.push(a.id);
-          a.piStatus = next; changed = true;
-        } else if (!next && a.piJobId && (a.piStatus === "sent" || a.piStatus === "in_progress")) {
-          a.piStatus = "pending"; delete a.piJobId; changed = true;
+          a.piStatus = next; delete a.piSendingAt; changed = true;
+        } else if (!next && a.piJobId && (a.piStatus === "sent" || a.piStatus === "in_progress" || (a.piStatus === "sending" && Date.now() - (a.piSendingAt || 0) > 60000))) {
+          a.piStatus = "pending"; delete a.piJobId; delete a.piSendingAt; changed = true;
         }
       });
       if (changed) { save(); render(); }
@@ -786,8 +829,9 @@
       showToast("Grant Pi access in the Firefox tab, then send again.");
       return;
     }
-    var jobId = newPiJobId();
-    bSend.disabled = true;
+    var jobId = newPiJobId(), sendingAt = Date.now();
+    items.forEach(function (a) { a.piJobId = jobId; a.piSendingAt = sendingAt; a.piStatus = "sending"; });
+    save(); render();
     if (trigger) trigger.disabled = true;
     else bSend.textContent = "Sending…";
     var response = await sendPiBridge({
@@ -799,13 +843,15 @@
       }
     });
     if (!response || !response.ok) {
-      updatePiConnection(false);
+      items.forEach(function (a) {
+        if (a.piJobId === jobId && a.piStatus === "sending") { a.piStatus = "pending"; delete a.piJobId; delete a.piSendingAt; }
+      });
+      save(); updatePiConnection(false); render();
       showToast("Could not send to Pi. Start the annotation server and try again.");
       if (!trigger) flashSend("Failed");
-      else render();
       return;
     }
-    items.forEach(function (a) { a.piJobId = jobId; a.piStatus = response.status || "sent"; });
+    items.forEach(function (a) { a.piStatus = response.status || "sent"; delete a.piSendingAt; });
     save(); render();
     showToast(items.length === 1 ? "Annotation #" + items[0].id + " queued in Pi" : items.length + " annotations queued in Pi");
     if (!trigger) flashSend("Sent");
@@ -831,9 +877,11 @@
     pTitle.setAttribute("aria-label", "Annotations " + S.items.length + ". Move annotation panel. Drag with the pointer, use arrow keys to dock, or press Home to reset.");
     bMode.textContent = S.mode ? "Pause" : "Resume";
     bTarget.textContent = S.targetMode === "element" ? "Element" : "Text";
-    bSend.disabled = !piConnected || pendingPiItems().length === 0;
-    bSaveSend.disabled = !piConnected;
-    bSaveSend.title = piConnected ? "Save this annotation and send it to Pi" : "Start the Pi annotation server to save and send";
+    bCopy.disabled = !!editingItem;
+    bClear.disabled = !!editingItem;
+    bSend.disabled = !piConnected || pendingPiItems().length === 0 || !!editingItem;
+    bSaveSend.disabled = !piConnected || !!editingItem;
+    bSaveSend.title = editingItem ? "Save the edit, then send it from the annotation row" : (piConnected ? "Save this annotation and send it to Pi" : "Start the Pi annotation server to save and send");
     // Update footer hint
     fRight.textContent = S.mode
       ? (S.targetMode === "element" ? "⌥A pause · ⌥T text" : "⌥A pause · ⌥T element")
@@ -854,6 +902,7 @@
         state = el("input", { class: "state-check", title: piStatusLabel(a.piStatus), "aria-label": "Annotation " + a.id + ": " + piStatusLabel(a.piStatus) });
         state.type = "checkbox";
         state.checked = a.piStatus === "completed";
+        state.disabled = !!editingItem;
         state.onchange = function (e) {
           e.stopPropagation();
           a.piStatus = state.checked ? "completed" : "pending";
@@ -882,13 +931,18 @@
       }
       if (!isCurrentPage(a) && a.pageUrl) { var pg = el("div", { class: "s" }); pg.textContent = a.pageUrl; b.appendChild(pg); }
       var send = el("button", { class: "act send", title: "Send this annotation to Pi", "aria-label": "Send annotation " + a.id + " to Pi" }); send.type = "button";
-      send.disabled = !piConnected || a.piStatus !== "pending"; send.appendChild(icon("send"));
+      send.disabled = !piConnected || a.piStatus !== "pending" || !!editingItem; send.appendChild(icon("send"));
       send.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sendItemToPi.call(send, a); };
+      var edit = el("button", { class: "act e", title: "Edit this pending annotation", "aria-label": "Edit annotation " + a.id, "data-bh-edit-id": a.id }); edit.type = "button"; edit.textContent = "✎";
+      edit.disabled = a.piStatus !== "pending" || !!editingItem;
+      edit.onclick = function (e) { e.preventDefault(); e.stopPropagation(); beginEdit(a, e); };
       var c = el("button", { class: "act c", title: "Copy this annotation", "aria-label": "Copy annotation " + a.id }); c.type = "button"; c.textContent = "⧉";
+      c.disabled = !!editingItem;
       c.onclick = function (e) { e.preventDefault(); e.stopPropagation(); copyItem(a); };
       var x = el("button", { class: "act x", title: "Delete this annotation", "aria-label": "Delete annotation " + a.id }); x.type = "button"; x.textContent = "✕";
+      x.disabled = !!editingItem;
       x.onclick = function (e) { e.preventDefault(); e.stopPropagation(); removeTextMark(a.id); S.items = S.items.filter(function (q) { return q.id !== a.id; }); save(); render(); };
-      it.appendChild(state); it.appendChild(n); it.appendChild(b); it.appendChild(send); it.appendChild(c); it.appendChild(x);
+      it.appendChild(state); it.appendChild(n); it.appendChild(b); it.appendChild(send); it.appendChild(edit); it.appendChild(c); it.appendChild(x);
       list.appendChild(it);
     });
     layoutPins();
@@ -938,7 +992,7 @@
   // ---------- SPA route awareness ----------
   // On client-side navigation, keep the collection and only refresh page-local pins.
   function refreshForPath() {
-    if (pending) cancel();
+    if (pending || editingItem) cancelPending();
     render();
   }
   var _routeT = null;

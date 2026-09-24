@@ -101,7 +101,7 @@ assert.match(content, /type: "pi-web-annotator-consent"/);
 assert.match(consentHtml, /<script src="consent\.js"><\/script>/);
 assert.match(welcomeHtml, /Turn page feedback into Pi tasks/);
 assert.match(welcomeHtml, /Alt\+Shift\+A/);
-assert.match(welcomeHtml, /pi install npm:pi-web-annotator/);
+assert.match(welcomeHtml, /pi install git:github\.com\/pbjorklund\/pi-web-annotator/);
 assert.match(welcomeHtml, /\/annotation-server start/);
 assert.match(welcomeHtml, /https:\/\/pi\.dev/);
 assert.doesNotMatch(welcomeHtml, /<script|\bsrc=/i);

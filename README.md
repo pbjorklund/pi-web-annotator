@@ -63,7 +63,7 @@ The Markdown includes page URLs, source or component hints when available, stabl
 The Firefox extension works without Pi. To enable the local bridge, install the Pi package:
 
 ```bash
-pi install npm:pi-web-annotator
+pi install git:github.com/pbjorklund/pi-web-annotator
 ```
 
 Restart Pi, then start the bridge:
@@ -140,7 +140,7 @@ npm run build
 npm run release:validate
 ```
 
-Use `npm run dev` for Firefox development and `pi -e ./pi-extension/index.ts` for a checkout-local bridge. Keep the Firefox manifest version, package version, AMO metadata, privacy text, and release artifacts synchronized. Update the PI bridge with `pi update npm:pi-web-annotator`, reload PI, or remove it with `pi remove npm:pi-web-annotator`; browser-extension updates remain managed by Firefox or the temporary-install workflow.
+Use `npm run dev` for Firefox development and `pi -e ./pi-extension/index.ts` for a checkout-local bridge. Keep the Firefox manifest version, package version, AMO metadata, privacy text, and release artifacts synchronized. Update the PI bridge with `pi update --extensions`, reload PI, or remove it with `pi remove git:github.com/pbjorklund/pi-web-annotator`; browser-extension updates remain managed by Firefox or the temporary-install workflow.
 
 ## Attribution
 

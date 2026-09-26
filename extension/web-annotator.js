@@ -191,6 +191,14 @@
     input.style.left = Math.max(8, Math.min(anchorX, innerWidth - r.width - 8)) + "px";
     input.style.top = Math.max(8, Math.min(anchorY, innerHeight - r.height - 8)) + "px";
   }
+  function openEditor(target, note, label, placeholder, anchorX, anchorY) {
+    renderTargetHint(inSel, target);
+    inTa.value = note;
+    showInputAt(anchorX, anchorY);
+    input.setAttribute("aria-label", label);
+    inTa.placeholder = placeholder;
+    setTimeout(function () { inTa.focus(); }, 0);
+  }
 
   var panel = el("div", { id: "bh-panel" });
   var toast = el("div", { id: "bh-toast", role: "status", "aria-live": "polite", "aria-atomic": "true" });
@@ -593,11 +601,7 @@
       rect: { x: Math.round(r.left + scrollX), y: Math.round(r.top + scrollY), w: Math.round(r.width), h: Math.round(r.height) },
       color: cs.color, bg: cs.backgroundColor
     };
-    renderTargetHint(inSel, pending); inTa.value = "";
-    showInputAt(e.clientX, e.clientY);
-    input.setAttribute("aria-label", "Add annotation");
-    inTa.placeholder = "Note for this element…";
-    setTimeout(function () { inTa.focus(); }, 0);
+    openEditor(pending, "", "Add annotation", "Note for this element…", e.clientX, e.clientY);
   }
 
   // ---------- text selection → capture ----------
@@ -683,11 +687,7 @@
       markSelector: "mark[data-bh-anno-id='" + annoId + "']"
     };
 
-    renderTargetHint(inSel, pending); inTa.value = "";
-    showInputAt(lastRect.right + 8, lastRect.bottom + 8);
-    input.setAttribute("aria-label", "Add annotation");
-    inTa.placeholder = "Note for this text…";
-    setTimeout(function () { inTa.focus(); }, 0);
+    openEditor(pending, "", "Add annotation", "Note for this text…", lastRect.right + 8, lastRect.bottom + 8);
   }
 
   function focusEditButton(id) {
@@ -703,14 +703,9 @@
     var r = e.currentTarget.getBoundingClientRect();
     editingItem = a;
     render();
-    renderTargetHint(inSel, a);
-    inTa.value = a.note || "";
-    input.setAttribute("aria-label", "Edit annotation");
-    inTa.placeholder = "Edit annotation note…";
     var anchorX = e.clientX || r.left, anchorY = e.clientY || r.bottom;
-    showInputAt(anchorX, anchorY);
+    openEditor(a, a.note || "", "Edit annotation", "Edit annotation note…", anchorX, anchorY);
     bSaveSend.disabled = true;
-    setTimeout(function () { inTa.focus(); }, 0);
   }
 
   function commit() {

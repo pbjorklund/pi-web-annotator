@@ -162,6 +162,91 @@ test('moves, clamps, resets, and restores the annotation panel', { timeout: 30_0
   await context.close();
 });
 
+test('opens and cancels element and text capture editors without saving or leaving a mark', { timeout: 30_000 }, async (t) => {
+  const demo = await startDemoServer(0);
+  const browser = await firefox.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    await demo.close();
+  });
+  const page = await browser.newPage({ reducedMotion: 'reduce', viewport: { width: 900, height: 600 } });
+  page.setDefaultTimeout(5_000);
+  await page.addInitScript(() => {
+    globalThis.browser = {
+      storage: { local: { async get() { return {}; }, async set() {} } },
+      runtime: { async sendMessage() { return { ok: false }; } },
+    };
+  });
+  await page.goto(demo.origin, { waitUntil: 'networkidle' });
+  await injectAnnotator(page);
+
+  const captureButton = page.getByRole('button', { name: 'Publish release' });
+  const captureBox = await captureButton.boundingBox();
+  await captureButton.click();
+  const elementDialog = page.getByRole('dialog', { name: 'Add annotation' });
+  assert.ok(await elementDialog.isVisible());
+  assert.equal(await page.getByLabel('Annotation note').getAttribute('placeholder'), 'Note for this element…');
+  assert.equal(await page.getByLabel('Annotation note').inputValue(), '');
+  assert.match(await elementDialog.locator('.bh-primary').innerText(), /find by:/);
+  assert.match(await elementDialog.locator('.bh-fallback').innerText(), /dom-path fallback:/);
+  const elementBox = await elementDialog.boundingBox();
+  assertInsideViewport(elementBox, { width: 900, height: 600 });
+  assert.ok(Math.abs(elementBox.x - Math.max(8, Math.min(captureBox.x + captureBox.width / 2, 900 - elementBox.width - 8))) < 2);
+  assert.ok(Math.abs(elementBox.y - Math.max(8, Math.min(captureBox.y + captureBox.height / 2, 600 - elementBox.height - 8))) < 2);
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Annotation note');
+  await page.keyboard.press('Escape');
+  assert.ok(await elementDialog.isHidden());
+  assert.equal(await page.evaluate(() => globalThis.__piWebAnnotator.items.length), 0);
+
+  await page.getByRole('button', { name: 'Element', exact: true }).click();
+  await page.evaluate(() => {
+    const target = Array.from(document.querySelectorAll('button')).find((button) => button.textContent === 'Publish release');
+    const range = document.createRange();
+    range.selectNodeContents(target.firstChild);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+  const textDialog = page.getByRole('dialog', { name: 'Add annotation' });
+  await textDialog.waitFor({ state: 'visible' });
+  assert.equal(await page.getByLabel('Annotation note').getAttribute('placeholder'), 'Note for this text…');
+  assert.equal(await page.getByLabel('Annotation note').inputValue(), '');
+  assert.match(await textDialog.locator('.bh-primary').innerText(), /find by:/);
+  assert.match(await textDialog.locator('.bh-fallback').innerText(), /Text: "Publish release"/);
+  const textBox = await textDialog.boundingBox();
+  assertInsideViewport(textBox, { width: 900, height: 600 });
+  // This selection's range collapses when wrapped; its existing position is clamped to the margin.
+  assert.equal(textBox.x, 8);
+  assert.equal(textBox.y, 8);
+  assert.equal(await page.locator('mark[data-bh-anno-id]').count(), 1);
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Annotation note');
+  await page.keyboard.press('Escape');
+  assert.ok(await textDialog.isHidden());
+  assert.equal(await page.locator('mark[data-bh-anno-id]').count(), 0);
+  assert.equal(await page.evaluate(() => globalThis.__piWebAnnotator.items.length), 0);
+
+  await page.evaluate(() => {
+    const target = Array.from(document.querySelectorAll('button')).find((button) => button.textContent === 'Publish release');
+    target.normalize();
+    const range = document.createRange();
+    range.setStart(target.firstChild, 0);
+    range.setEnd(target.firstChild, 7);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+  await textDialog.waitFor({ state: 'visible' });
+  await page.getByLabel('Annotation note').fill('Shorten the release label.');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => {
+    const item = globalThis.__piWebAnnotator.items[0];
+    return { id: item.id, type: item.type, text: item.text, note: item.note };
+  }), { id: 1, type: 'text', text: 'Publish', note: 'Shorten the release label.' });
+  assert.equal(await page.locator('mark[data-bh-anno-id="1"]').count(), 1);
+});
+
 test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t) => {
   const demo = await startDemoServer(0);
   const browser = await firefox.launch({ headless: true });
@@ -217,11 +302,21 @@ test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t
 
   const healthCallsBeforeEdit = await page.evaluate(() => globalThis.__annotationHealthCalls || 0);
   const editButton = page.getByRole('button', { name: 'Edit annotation 1' });
+  const editBox = await editButton.boundingBox();
   await editButton.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Edit annotation' });
   assert.ok(await dialog.isVisible());
   assert.equal(await page.getByLabel('Annotation note').inputValue(), 'Use the approved release copy.');
+  assert.equal(await page.getByLabel('Annotation note').getAttribute('placeholder'), 'Edit annotation note…');
+  const dialogBox = await dialog.boundingBox();
+  const viewport = page.viewportSize();
+  assert.ok(Math.abs(dialogBox.x - Math.max(8, Math.min(editBox.x, viewport.width - dialogBox.width - 8))) < 2);
+  assert.ok(Math.abs(dialogBox.y - Math.max(8, Math.min(editBox.y + editBox.height, viewport.height - dialogBox.height - 8))) < 2);
+  assert.match(await dialog.locator('.bh-primary').innerText(), /find by:/);
+  assert.match(await dialog.locator('.bh-fallback').innerText(), /dom-path fallback:/);
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Annotation note');
+  assert.equal(await page.getByRole('button', { name: 'Save and send' }).isDisabled(), true);
   assert.equal(await page.getByRole('button', { name: 'Send to Pi' }).isDisabled(), true);
   assert.equal(await page.getByRole('button', { name: 'Send annotation 1 to Pi' }).isDisabled(), true);
   await page.waitForFunction((previousCount) => (globalThis.__annotationHealthCalls || 0) > previousCount, healthCallsBeforeEdit);

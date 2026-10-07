@@ -309,8 +309,13 @@ test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t
   assert.ok(await dialog.isVisible());
   assert.equal(await page.getByLabel('Annotation note').inputValue(), 'Use the approved release copy.');
   assert.equal(await page.getByLabel('Annotation note').getAttribute('placeholder'), 'Edit annotation note…');
-  const dialogBox = await dialog.boundingBox();
   const viewport = page.viewportSize();
+  await page.waitForFunction(({ anchor, viewport }) => {
+    const box = document.querySelector('#bh-input').getBoundingClientRect();
+    return Math.abs(box.x - Math.max(8, Math.min(anchor.x, viewport.width - box.width - 8))) < 2
+      && Math.abs(box.y - Math.max(8, Math.min(anchor.y + anchor.height, viewport.height - box.height - 8))) < 2;
+  }, { anchor: editBox, viewport });
+  const dialogBox = await dialog.boundingBox();
   assert.ok(Math.abs(dialogBox.x - Math.max(8, Math.min(editBox.x, viewport.width - dialogBox.width - 8))) < 2);
   assert.ok(Math.abs(dialogBox.y - Math.max(8, Math.min(editBox.y + editBox.height, viewport.height - dialogBox.height - 8))) < 2);
   assert.match(await dialog.locator('.bh-primary').innerText(), /find by:/);

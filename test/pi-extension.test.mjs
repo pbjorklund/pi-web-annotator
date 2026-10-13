@@ -1,9 +1,60 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 
 import { annotationJobMarker } from '../pi-extension/server.mjs';
 
 const HEADER = { 'x-pi-web-annotator': '1', 'content-type': 'application/json' };
+
+async function lifecycleFixture(t) {
+  const reservation = createServer();
+  reservation.listen(0, '127.0.0.1');
+  await once(reservation, 'listening');
+  const port = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
+  const previous = process.env.PI_WEB_ANNOTATOR_PORT;
+  process.env.PI_WEB_ANNOTATOR_PORT = String(port);
+  const { default: register } = await import(`../pi-extension/index.ts?lifecycle=${port}`);
+  if (previous === undefined) delete process.env.PI_WEB_ANNOTATOR_PORT;
+  else process.env.PI_WEB_ANNOTATOR_PORT = previous;
+  const handlers = {}, commands = {}, notices = [], statuses = [];
+  register({
+    on(name, handler) { handlers[name] = handler; },
+    registerCommand(name, command) { commands[name] = command; },
+    sendUserMessage() {},
+  });
+  const ctx = {
+    ui: {
+      theme: { fg(_color, text) { return text; } },
+      notify(message, level) { notices.push({ message, level }); },
+      setStatus(_id, value) { statuses.push(value); },
+    },
+    isIdle() { return true; },
+  };
+  await handlers.session_start({}, ctx);
+  t.after(() => handlers.session_shutdown({}, ctx));
+  return { handlers, notices, statuses, ctx, url: `http://127.0.0.1:${port}`,
+    command: action => commands['annotation-server'].handler(action, ctx) };
+}
+
+ test('concurrent starts share one owned listener without bind errors', async t => {
+  const h = await lifecycleFixture(t);
+  await Promise.all([h.command('start'), h.command('start')]);
+  assert.deepEqual(h.notices.filter(n => n.level === 'error'), []);
+  const health = await fetch(`${h.url}/health`, { headers: HEADER });
+  assert.deepEqual(await health.json(), { ok: true });
+});
+
+test('shutdown drains pending startup and prevents a late listener or running status', async t => {
+  const h = await lifecycleFixture(t);
+  const starting = h.command('start');
+  const stopping = h.handlers.session_shutdown({}, h.ctx);
+  await Promise.all([starting, stopping]);
+  await assert.rejects(fetch(`${h.url}/health`, { headers: HEADER }));
+  assert.equal(h.statuses.at(-1), undefined);
+  assert.equal(h.notices.some(n => n.message.startsWith('Annotation server listening')), false);
+});
 
 test('demo sandbox blocks file tools outside the demo workspace', async () => {
   const { default: registerSandbox } = await import('../pi-extension/demo-sandbox.ts');

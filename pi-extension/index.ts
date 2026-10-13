@@ -13,6 +13,9 @@ type AnnotationServer = Awaited<ReturnType<typeof createAnnotationServer>>;
 
 export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   let server: AnnotationServer | undefined;
+  let starting: Promise<void> | undefined;
+  let stopping: Promise<void> | undefined;
+  let generation = 0;
   let currentContext: ExtensionContext | undefined;
   let activeJobId: string | undefined;
   let activeJobFailed = false;
@@ -25,41 +28,72 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   }
 
   async function startServer(ctx: ExtensionContext) {
+    const owner = generation;
+    if (stopping) await stopping;
+    if (owner !== generation) return;
     if (server) {
       showRunningStatus(ctx);
       return;
     }
-    currentContext = ctx;
-    server = await createAnnotationServer({
-      port: PORT,
-      async onJob(job) {
-        const liveContext = currentContext;
-        if (!liveContext || !server) throw new Error('No active Pi session');
-        const prompt = `${annotationJobMarker(job.id)}\n${job.prompt}`;
-        if (liveContext.isIdle()) {
-          activeJobId = job.id;
-          activeJobFailed = false;
-          server.markInProgress(job.id);
-          pi.sendUserMessage(prompt);
-        } else {
-          pi.sendUserMessage(prompt, { deliverAs: 'followUp' });
+    if (!starting) {
+      currentContext = ctx;
+      const pending: Promise<void> = (async () => {
+        try {
+          const created = await createAnnotationServer({
+            port: PORT,
+            async onJob(job) {
+              const liveContext = currentContext;
+              if (owner !== generation || !liveContext || !server) throw new Error('No active Pi session');
+              const prompt = `${annotationJobMarker(job.id)}\n${job.prompt}`;
+              if (liveContext.isIdle()) {
+                activeJobId = job.id;
+                activeJobFailed = false;
+                server.markInProgress(job.id);
+                pi.sendUserMessage(prompt);
+              } else {
+                pi.sendUserMessage(prompt, { deliverAs: 'followUp' });
+              }
+              liveContext.ui.notify(
+                `Received ${job.annotationIds.length} browser annotation${job.annotationIds.length === 1 ? '' : 's'}`,
+                'info',
+              );
+            },
+          });
+          if (owner !== generation || currentContext !== ctx) {
+            await created.close();
+            return;
+          }
+          server = created;
+          showRunningStatus(ctx);
+          ctx.ui.notify(`Annotation server listening on 127.0.0.1:${PORT}`, 'info');
+        } finally {
+          if (starting === pending) starting = undefined;
         }
-        liveContext.ui.notify(
-          `Received ${job.annotationIds.length} browser annotation${job.annotationIds.length === 1 ? '' : 's'}`,
-          'info',
-        );
-      },
-    });
-    showRunningStatus(ctx);
-    ctx.ui.notify(`Annotation server listening on 127.0.0.1:${PORT}`, 'info');
+      })();
+      starting = pending;
+    }
+    await starting;
   }
 
   async function stopServer(ctx?: ExtensionContext) {
+    generation++;
+    currentContext = undefined;
+    const pending = starting;
     const running = server;
     server = undefined;
     activeJobId = undefined;
     activeJobFailed = false;
-    if (running) await running.close();
+    if (!stopping) {
+      const closing: Promise<void> = (async () => {
+        try {
+          await Promise.all([pending?.catch(() => {}), running?.close()]);
+        } finally {
+          if (stopping === closing) stopping = undefined;
+        }
+      })();
+      stopping = closing;
+    }
+    await stopping;
     ctx?.ui.setStatus(STATUS_ID, undefined);
     ctx?.ui.notify('Annotation server stopped', 'info');
   }
@@ -129,6 +163,5 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
 
   pi.on('session_shutdown', async (_event, ctx) => {
     await stopServer(ctx);
-    currentContext = undefined;
   });
 }

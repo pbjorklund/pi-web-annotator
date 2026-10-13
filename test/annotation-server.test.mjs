@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { connect } from 'node:net';
+import { once } from 'node:events';
 
 import {
   annotationJobMarker,
@@ -70,6 +72,34 @@ test('rejects malformed jobs', async (t) => {
   });
 
   assert.equal(response.status, 400);
+});
+
+test('shutdown closes an owned client with an incomplete HTTP body', async () => {
+  const bridge = await createAnnotationServer({ port: 0, onJob() {} });
+  const socket = connect(Number(new URL(bridge.url).port), '127.0.0.1');
+  socket.on('error', () => {});
+  await once(socket, 'connect');
+  const closed = new Promise(resolve => socket.once('close', resolve));
+  socket.write('POST /jobs HTTP/1.1\r\nHost: localhost\r\nx-pi-web-annotator: 1\r\nContent-Length: 100\r\n\r\n{');
+  // A valid response on another connection proves the owned server is accepting traffic.
+  const health = await fetch(`${bridge.url}/health`, { headers: BRIDGE_HEADER });
+  assert.equal(health.status, 200);
+  await health.json();
+  let timer;
+  const closing = bridge.close();
+  try {
+    await Promise.race([
+      Promise.all([closing, closed]),
+      new Promise((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Owned incomplete request prevented shutdown')), 1000);
+      }),
+    ]);
+    assert.equal(socket.destroyed, true);
+  } finally {
+    clearTimeout(timer);
+    socket.destroy();
+    await closing;
+  }
 });
 
 test('round-trips hidden job markers', () => {

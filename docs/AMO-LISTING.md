@@ -34,9 +34,9 @@ With the optional local Pi bridge you can:
 
 The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage, isolated from page scripts. After Firefox consent and a send action, the extension sends annotation content to Pi on `127.0.0.1`. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
 
-## Release notes for 1.8.0
+## Release notes for 1.8.2
 
-Edit a pending annotation note without recapturing its element or selected text. The updated note stays in the collection and is used for later copy or send actions.
+Keep multi-digit annotation numbers inside their markers and stack overlapping markers vertically, including multiple comments on the same element. Fix local Pi bridge startup and shutdown races.
 
 ## Privacy policy
 

@@ -247,6 +247,58 @@ test('opens and cancels element and text capture editors without saving or leavi
   assert.equal(await page.locator('mark[data-bh-anno-id="1"]').count(), 1);
 });
 
+test('keeps multi-digit pins readable and stacks comments on the same component', { timeout: 30_000 }, async (t) => {
+  const demo = await startDemoServer(0);
+  const browser = await firefox.launch({ headless: true });
+  t.after(async () => {
+    await browser.close();
+    await demo.close();
+  });
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  await page.goto(demo.origin);
+  await page.evaluate(() => {
+    document.body.style.overflowWrap = 'anywhere';
+    const target = document.createElement('div');
+    target.id = 'pin-target';
+    target.style.cssText = 'position:absolute;left:60px;top:60px;width:200px;height:200px';
+    document.body.appendChild(target);
+    const items = [9, 10, 15, 100].map((id) => ({
+      id, selector: '#pin-target', note: `Comment ${id}`,
+      type: id === 15 ? 'text' : 'element',
+    }));
+    globalThis.browser = {
+      storage: { local: {
+        async get(key) { return key.includes(':collection:') ? { [key]: items } : {}; },
+        async set() {},
+      } },
+      runtime: { async sendMessage() { return { ok: false }; } },
+    };
+  });
+  await injectAnnotator(page);
+
+  async function assertReadableStack() {
+    const pins = await page.locator('.bh-pin').evaluateAll((nodes) => nodes.map((node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const text = range.getBoundingClientRect();
+      const box = node.getBoundingClientRect();
+      return { id: node.textContent, x: box.x, y: box.y, right: box.right, bottom: box.bottom,
+        textLeft: text.left, textRight: text.right, textBottom: text.bottom };
+    }));
+    assert.deepEqual(pins.map((pin) => pin.id), ['9', '10', '15', '100']);
+    for (const [index, pin] of pins.entries()) {
+      assert.ok(pin.textLeft >= pin.x && pin.textRight <= pin.right && pin.textBottom <= pin.bottom,
+        `all digits of pin ${pin.id} must fit inside its marker`);
+      if (index > 0) assert.ok(pin.y > pins[index - 1].bottom, 'comments on the same component must not overlap');
+    }
+    return pins;
+  }
+  const before = await assertReadableStack();
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.deepEqual(await assertReadableStack(), before, 'relayout must preserve the stack');
+});
+
 test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t) => {
   const demo = await startDemoServer(0);
   const browser = await firefox.launch({ headless: true });

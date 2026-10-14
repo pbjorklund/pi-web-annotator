@@ -46,7 +46,7 @@ To test an unreleased change, follow the temporary installation steps in [CONTRI
 2. Select text on the page.
 3. Write the requested change and save it.
 
-Text annotations use an amber highlight. Element annotations use green outlines and pins.
+Text annotations use an amber highlight. Element annotations use green outlines and pins. Numbered pins expand to fit longer IDs and stack vertically when comments would overlap, including multiple comments on the same element.
 
 ### Export a review
 

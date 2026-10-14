@@ -104,7 +104,7 @@
     // Persistent text highlights (marks) from saved annotations
     "mark[data-bh-anno-id]{background:" + TEXT_HL + ";border-radius:3px;color:inherit;padding:1px 0;cursor:default}" +
     "mark[data-bh-anno-id]:hover{background:rgba(245,158,11,.42)}" +
-    ".bh-pin{position:absolute;z-index:" + (Z + 1) + ";min-width:22px;height:22px;padding:0 6px;background:" + ACCENT + ";color:" + HDR + ";font:700 12px/22px " + FONT + ";text-align:center;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.45);cursor:pointer;pointer-events:auto;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}" +
+    ".bh-pin{position:absolute;z-index:" + (Z + 1) + ";width:max-content;min-width:22px;height:22px;padding:0 6px;white-space:nowrap;background:" + ACCENT + ";color:" + HDR + ";font:700 12px/22px " + FONT + ";text-align:center;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.45);cursor:pointer;pointer-events:auto;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}" +
     ".bh-pin:hover{transform:scale(1.18);background:" + ACCENT_H + ";box-shadow:0 4px 14px rgba(16,163,127,.5)}" +
     // Text-annotation pins get an amber tint
     ".bh-pin.bh-pin-text{background:#f59e0b}" +
@@ -947,6 +947,7 @@
   function layoutPins() {
     if (!pinLayer) return;
     pinLayer.innerHTML = "";
+    var placed = [];
     S.items.filter(isCurrentPage).forEach(function (a) {
       var node = null;
       if (a.type === "text" && a.markSelector) {
@@ -960,6 +961,18 @@
       if (node) { var r = node.getBoundingClientRect(); pin.style.left = (r.left + scrollX - 6) + "px"; pin.style.top = (r.top + scrollY - 6) + "px"; }
       else { pin.style.left = (a.rect.x - 6) + "px"; pin.style.top = (a.rect.y - 6) + "px"; pin.style.opacity = ".5"; }
       pinLayer.appendChild(pin);
+      var left = parseFloat(pin.style.left), top = parseFloat(pin.style.top);
+      var width = pin.offsetWidth, height = pin.offsetHeight;
+      var collision;
+      do {
+        collision = placed.find(function (box) {
+          return left < box.right + 4 && left + width + 4 > box.left &&
+            top < box.bottom + 4 && top + height + 4 > box.top;
+        });
+        if (collision) top = collision.bottom + 4;
+      } while (collision);
+      pin.style.top = top + "px";
+      placed.push({ left: left, top: top, right: left + width, bottom: top + height });
     });
   }
 

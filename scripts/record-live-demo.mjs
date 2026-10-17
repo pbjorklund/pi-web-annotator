@@ -337,7 +337,7 @@ try {
     }
   });
 
-  await rpc.send({ type: 'prompt', message: '/annotation-server start' });
+  await rpc.send({ type: 'prompt', message: '/annotator-server start' });
   await waitForBridge(bridgePort);
   appendTerminal('bridge', `annotation bridge ready · 127.0.0.1:${bridgePort}`);
 
@@ -422,7 +422,7 @@ try {
   await delay(2800);
 
   const statsResponse = await rpc.send({ type: 'get_session_stats' });
-  await rpc.send({ type: 'prompt', message: '/annotation-server stop' });
+  await rpc.send({ type: 'prompt', message: '/annotator-server stop' });
   unsubscribe();
 
   const video = page.video();

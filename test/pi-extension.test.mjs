@@ -18,14 +18,16 @@ async function lifecycleFixture(t) {
   const { default: register } = await import(`../pi-extension/index.ts?lifecycle=${port}`);
   if (previous === undefined) delete process.env.PI_WEB_ANNOTATOR_PORT;
   else process.env.PI_WEB_ANNOTATOR_PORT = previous;
-  const handlers = {}, commands = {}, notices = [], statuses = [];
+  const handlers = {}, commands = {}, notices = [], statuses = [], widgets = new Map();
   register({
     on(name, handler) { handlers[name] = handler; },
     registerCommand(name, command) { commands[name] = command; },
     sendUserMessage() {},
   });
   const ctx = {
+    mode: 'tui', hasUI: true,
     ui: {
+      setWidget(key, value) { widgets.set(key, value); },
       theme: { fg(_color, text) { return text; } },
       notify(message, level) { notices.push({ message, level }); },
       setStatus(_id, value) { statuses.push(value); },
@@ -34,13 +36,20 @@ async function lifecycleFixture(t) {
   };
   await handlers.session_start({}, ctx);
   t.after(() => handlers.session_shutdown({}, ctx));
-  return { handlers, notices, statuses, ctx, url: `http://127.0.0.1:${port}`,
-    command: action => commands['annotation-server'].handler(action, ctx) };
+  return { handlers, notices, statuses, widgets, ctx, url: `http://127.0.0.1:${port}`,
+    command: action => commands['annotator-server'].handler(action, ctx) };
 }
 
  test('concurrent starts share one owned listener without bind errors', async t => {
   const h = await lifecycleFixture(t);
+  h.widgets.set('watcher-fixture', ['independent']);
+  assert.match(h.widgets.get('annotation-server')[0], /stopped/);
   await Promise.all([h.command('start'), h.command('start')]);
+  assert.match(h.widgets.get('annotation-server')[0], /listening/);
+  await h.command('stop');
+  assert.equal(h.widgets.get('annotation-server'), undefined);
+  assert.deepEqual(h.widgets.get('watcher-fixture'), ['independent']);
+  await h.command('start');
   assert.deepEqual(h.notices.filter(n => n.level === 'error'), []);
   const health = await fetch(`${h.url}/health`, { headers: HEADER });
   assert.deepEqual(await health.json(), { ok: true });
@@ -52,7 +61,7 @@ test('shutdown drains pending startup and prevents a late listener or running st
   const stopping = h.handlers.session_shutdown({}, h.ctx);
   await Promise.all([starting, stopping]);
   await assert.rejects(fetch(`${h.url}/health`, { headers: HEADER }));
-  assert.equal(h.statuses.at(-1), undefined);
+  assert.equal(h.widgets.get('annotation-server'), undefined);
   assert.equal(h.notices.some(n => n.message.startsWith('Annotation server listening')), false);
 });
 
@@ -94,7 +103,7 @@ test('Pi extension queues browser jobs as follow-ups and tracks progress', async
   };
   const ctx = { ui, isIdle() { return false; } };
   await handlers.session_start({}, ctx);
-  await commands['annotation-server'].handler('start', ctx);
+  await commands['annotator-server'].handler('start', ctx);
   t.after(async () => handlers.session_shutdown({}, ctx));
 
   const created = await fetch('http://127.0.0.1:17374/jobs', {

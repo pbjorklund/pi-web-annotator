@@ -69,8 +69,10 @@ pi install git:github.com/pbjorklund/pi-web-annotator
 Restart Pi, then start the bridge:
 
 ```text
-/annotation-server start
+/annotator-server start
 ```
+
+The TUI's `Annotator` bar shows stopped, listening, or active from the bridge lifecycle. It does not start the bridge. Stopping removes only this bar; RPC and headless sessions create no terminal widget. The old `/annotation-server` command is removed.
 
 The bridge listens on `127.0.0.1:17373`. It accepts marked extension requests from the local Firefox background script and stops with the Pi session.
 
@@ -88,8 +90,8 @@ Use **Save and send** for a new note, the arrow button for one pending row, or *
 Pi bridge commands:
 
 ```text
-/annotation-server status
-/annotation-server stop
+/annotator-server status
+/annotator-server stop
 ```
 
 For a one-off Pi run from this checkout:

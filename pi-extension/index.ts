@@ -21,10 +21,10 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   let activeJobFailed = false;
 
   function showRunningStatus(ctx: ExtensionContext) {
-    ctx.ui.setStatus(
-      STATUS_ID,
-      ctx.ui.theme.fg('success', '●') + ctx.ui.theme.fg('dim', ` annotations :${PORT}`),
-    );
+    if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.setWidget !== 'function') return;
+    try {
+      ctx.ui.setWidget(STATUS_ID, [`Annotator · ${server ? activeJobId ? 'active' : 'listening' : 'stopped'} · :${PORT}`]);
+    } catch {}
   }
 
   async function startServer(ctx: ExtensionContext) {
@@ -49,6 +49,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
                 activeJobId = job.id;
                 activeJobFailed = false;
                 server.markInProgress(job.id);
+                showRunningStatus(liveContext);
                 pi.sendUserMessage(prompt);
               } else {
                 pi.sendUserMessage(prompt, { deliverAs: 'followUp' });
@@ -94,11 +95,13 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
       stopping = closing;
     }
     await stopping;
-    ctx?.ui.setStatus(STATUS_ID, undefined);
+    try {
+      if (ctx?.mode === 'tui' && ctx.hasUI) ctx.ui.setWidget?.(STATUS_ID, undefined);
+    } catch {}
     ctx?.ui.notify('Annotation server stopped', 'info');
   }
 
-  pi.registerCommand('annotation-server', {
+  pi.registerCommand('annotator-server', {
     description: 'Start, stop, or show the browser annotation bridge',
     handler: async (args, ctx) => {
       const action = args.trim().toLowerCase();
@@ -111,7 +114,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
         return;
       }
       if (action && action !== 'start') {
-        ctx.ui.notify('Usage: /annotation-server [start|stop|status]', 'warning');
+        ctx.ui.notify('Usage: /annotator-server [start|stop|status]', 'warning');
         return;
       }
       try {
@@ -123,7 +126,9 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   });
 
   pi.on('session_start', async (_event, ctx) => {
+    if (currentContext) await stopServer(currentContext);
     currentContext = ctx;
+    showRunningStatus(ctx);
   });
 
   pi.on('message_start', async (event) => {
@@ -137,6 +142,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     activeJobId = jobId;
     activeJobFailed = false;
     server.markInProgress(jobId);
+    if (currentContext) showRunningStatus(currentContext);
   });
 
   pi.on('agent_start', async () => {
@@ -159,6 +165,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     else server.markCompleted(activeJobId);
     activeJobId = undefined;
     activeJobFailed = false;
+    if (currentContext) showRunningStatus(currentContext);
   });
 
   pi.on('session_shutdown', async (_event, ctx) => {

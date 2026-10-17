@@ -17,7 +17,7 @@
     "dev:zen": "node scripts/prepare-dev-profile.mjs && node scripts/run-zen-dev.mjs",
     "demo:serve": "node scripts/serve-demo.mjs",
     "demo:browser": "node scripts/run-demo-browser.mjs",
-    "demo:pi": "cd demo && pi --no-session --no-context-files --no-extensions --no-skills --no-prompt-templates --no-themes --no-approve --tools read,edit,write -e ../pi-extension/index.ts \"/annotation-server start\"",
+    "demo:pi": "cd demo && pi --no-session --no-context-files --no-extensions --no-skills --no-prompt-templates --no-themes --no-approve --tools read,edit,write -e ../pi-extension/index.ts \"/annotator-server start\"",
     "demo:video": "python3 evals/live-demo/run.py",
     "demo:gif": "node scripts/encode-demo-gif.mjs",
     "screenshots": "node scripts/capture-screenshots.mjs",

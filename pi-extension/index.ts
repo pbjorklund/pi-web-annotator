@@ -23,7 +23,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   function showRunningStatus(ctx: ExtensionContext) {
     if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.setWidget !== 'function') return;
     try {
-      ctx.ui.setWidget(STATUS_ID, [`Annotator · ${server ? activeJobId ? 'active' : 'listening' : 'stopped'} · :${PORT}`]);
+      ctx.ui.setWidget(STATUS_ID, server ? [`Annotator · ${activeJobId ? 'active' : 'listening'} · :${PORT}`] : undefined);
     } catch {}
   }
 

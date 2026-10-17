@@ -43,7 +43,7 @@ async function lifecycleFixture(t) {
  test('concurrent starts share one owned listener without bind errors', async t => {
   const h = await lifecycleFixture(t);
   h.widgets.set('watcher-fixture', ['independent']);
-  assert.match(h.widgets.get('annotation-server')[0], /stopped/);
+  assert.equal(h.widgets.get('annotation-server'), undefined);
   await Promise.all([h.command('start'), h.command('start')]);
   assert.match(h.widgets.get('annotation-server')[0], /listening/);
   await h.command('stop');

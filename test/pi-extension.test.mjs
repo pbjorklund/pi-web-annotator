@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createWidgetHost } from './widget-host.mjs';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
@@ -27,7 +28,7 @@ async function lifecycleFixture(t, mode = 'tui') {
   const ctx = {
     mode, hasUI: mode === 'tui' || mode === 'rpc', cwd: process.cwd(),
     ui: {
-      setWidget(key, value) { widgets.set(key, value); },
+      setWidget: createWidgetHost((key, value) => widgets.set(key, value)).setWidget,
       theme: { fg(_color, text) { return text; } },
       notify(message, level) { notices.push({ message, level }); },
       setStatus(_id, value) { statuses.push(value); },

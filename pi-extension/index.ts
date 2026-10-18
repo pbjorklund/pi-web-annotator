@@ -1,3 +1,4 @@
+import { createStableWidget } from './stable-widget.ts';
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
 import {
   annotationJobMarker,
@@ -12,6 +13,7 @@ const STATUS_ID = 'annotation-server';
 type AnnotationServer = Awaited<ReturnType<typeof createAnnotationServer>>;
 
 export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
+  const setWidget = createStableWidget();
   let server: AnnotationServer | undefined;
   let starting: Promise<void> | undefined;
   let stopping: Promise<void> | undefined;
@@ -23,7 +25,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
   function showRunningStatus(ctx: ExtensionContext) {
     if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.setWidget !== 'function') return;
     try {
-      ctx.ui.setWidget(STATUS_ID, server ? [`Annotator · ${activeJobId ? 'active' : 'listening'} · :${PORT}`] : undefined);
+      setWidget(ctx.ui, STATUS_ID, server ? [`Annotator · ${activeJobId ? 'active' : 'listening'} · :${PORT}`] : undefined);
     } catch {}
   }
 
@@ -96,7 +98,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     }
     await stopping;
     try {
-      if (ctx?.mode === 'tui' && ctx.hasUI) ctx.ui.setWidget?.(STATUS_ID, undefined);
+      if (ctx?.mode === 'tui' && ctx.hasUI) setWidget(ctx.ui, STATUS_ID, undefined);
     } catch {}
     ctx?.ui.notify('Annotation server stopped', 'info');
   }

@@ -26,3 +26,14 @@ These direct tools are used to develop, test, package, or host integrations. The
 | Pi Coding Agent | Optional host for the Pi extension | MIT | <https://github.com/earendil-works/pi> |
 
 Dependency versions are recorded in `package.json` and `package-lock.json`.
+
+### Local node-forge development backport
+
+The repository vendors the Node source of node-forge 1.4.0 with the RSA parser fix proposed in upstream PR 1152, pinned to commit `ceba34402e329f0365134f23fe19898756527d65`. The custom build is `1.4.0-pi.1`, not an official upstream release. It is used only by the development toolchain and is excluded from both published packages.
+
+- Copyright: Digital Bazaar, Inc. and the node-forge contributors, preserved in the source files.
+- License: BSD-3-Clause OR GPL-2.0, preserved in `vendor/node-forge/LICENSE`.
+- Source: <https://github.com/digitalbazaar/forge>
+- Patch: <https://github.com/digitalbazaar/forge/pull/1152>
+
+See `docs/SECURITY-BACKPORT.md` for signed-source provenance, reproducibility checks, exploit tests and audit coverage limits.

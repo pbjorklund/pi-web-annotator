@@ -34,9 +34,9 @@ With the optional local Pi bridge you can:
 
 The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage, isolated from page scripts. After Firefox consent and a send action, the extension sends annotation content to Pi on `127.0.0.1`. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
 
-## Release notes for 1.8.2
+## Release notes for 2.0.0
 
-Keep multi-digit annotation numbers inside their markers and stack overlapping markers vertically, including multiple comments on the same element. Fix local Pi bridge startup and shutdown races.
+Rename the Pi bridge command from `/annotation-server` to `/annotator-server`. Update saved commands and scripts to use the new name. Show listening and active states in the Annotator bar while the bridge runs; hide the bar when stopped. Fresh Pi sessions keep the bridge off until you start it. RPC and headless sessions create no terminal widget. Storage, permissions, and data sharing are unchanged.
 
 ## Privacy policy
 

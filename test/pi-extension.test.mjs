@@ -7,7 +7,7 @@ import { annotationJobMarker } from '../pi-extension/server.mjs';
 
 const HEADER = { 'x-pi-web-annotator': '1', 'content-type': 'application/json' };
 
-async function lifecycleFixture(t) {
+async function lifecycleFixture(t, mode = 'tui') {
   const reservation = createServer();
   reservation.listen(0, '127.0.0.1');
   await once(reservation, 'listening');
@@ -25,7 +25,7 @@ async function lifecycleFixture(t) {
     sendUserMessage() {},
   });
   const ctx = {
-    mode: 'tui', hasUI: true,
+    mode, hasUI: mode === 'tui' || mode === 'rpc', cwd: process.cwd(),
     ui: {
       setWidget(key, value) { widgets.set(key, value); },
       theme: { fg(_color, text) { return text; } },
@@ -40,7 +40,28 @@ async function lifecycleFixture(t) {
     command: action => commands['annotator-server'].handler(action, ctx) };
 }
 
- test('concurrent starts share one owned listener without bind errors', async t => {
+for (const mode of ['tui', 'rpc', 'json', 'print']) {
+  test(`fresh ${mode} session stays off with a configured bridge port`, async t => {
+    const h = await lifecycleFixture(t, mode);
+    await h.command('status');
+    assert.equal(h.widgets.get('annotation-server'), undefined);
+    assert.deepEqual(h.statuses, []);
+    assert.equal(h.notices.at(-1).message, 'Annotation server is stopped');
+    await assert.rejects(fetch(`${h.url}/health`, { headers: HEADER }),
+      error => error.cause?.code === 'ECONNREFUSED');
+  });
+}
+
+test('a replacement session does not inherit a running bridge or widget', async t => {
+  const h = await lifecycleFixture(t);
+  await h.command('start');
+  await h.handlers.session_start({}, h.ctx);
+  assert.equal(h.widgets.get('annotation-server'), undefined);
+  await assert.rejects(fetch(`${h.url}/health`, { headers: HEADER }),
+    error => error.cause?.code === 'ECONNREFUSED');
+});
+
+test('concurrent starts share one owned listener without bind errors', async t => {
   const h = await lifecycleFixture(t);
   h.widgets.set('watcher-fixture', ['independent']);
   assert.equal(h.widgets.get('annotation-server'), undefined);

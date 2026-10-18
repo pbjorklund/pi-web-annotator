@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
-vendor/
+vendor/*
+!vendor/node-forge/
+!vendor/node-forge-1.4.0.upstream.tgz
+!vendor/node-forge-1.4.0-pi.1.tgz
 __pycache__/
 *.pyc
 

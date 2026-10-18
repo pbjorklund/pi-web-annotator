@@ -41,6 +41,8 @@ npm run release:validate -- v<version>
 unzip -l web-ext-artifacts/pi-web-annotator-<version>.zip
 ```
 
+`npm run package` also verifies the local node-forge security backport and runs its exploit tests. Read [SECURITY-BACKPORT.md](SECURITY-BACKPORT.md) before evaluating audit and signature output: the custom tarball is verified locally, not certified as an upstream patched registry release. GNU tar is required for the offline reproducibility check.
+
 The ZIP must contain these twelve readable files:
 
 ```text

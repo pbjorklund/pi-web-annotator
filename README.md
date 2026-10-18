@@ -138,11 +138,14 @@ Annotations can contain page URLs, visible or selected text, element metadata, a
 Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) before opening a pull request. Run the local release gate with:
 
 ```bash
+npm ci
 npm test
 npm run lint
 npm run build
 npm run release:validate
 ```
+
+`npm ci` installs the pinned `pi-tui` development dependency used by bridge tests. PI supplies the runtime SDK; its peer packages remain optional for browser-only consumers.
 
 The development toolchain uses a local node-forge security backport, verified during `npm test`. Its offline source and tarball checks require GNU tar. See [the backport notes](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/SECURITY-BACKPORT.md) for provenance, exploit tests, and audit/signature coverage limits.
 

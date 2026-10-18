@@ -36,6 +36,7 @@
     "video": "https://raw.githubusercontent.com/pbjorklund/pi-web-annotator/main/artwork/demo/pi-web-annotator-demo.mp4"
   },
   "devDependencies": {
+    "@earendil-works/pi-tui": "0.99.1",
     "node-forge": "file:./vendor/node-forge-1.4.0-pi.1.tgz",
     "playwright": "1.61.1",
     "web-ext": "10.7.0"
@@ -53,6 +54,9 @@
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
       "optional": true
     }
   },

@@ -24,6 +24,7 @@ These direct tools are used to develop, test, package, or host integrations. The
 | Playwright | Repeatable demo interaction and screenshot capture | Apache-2.0 | <https://github.com/microsoft/playwright> |
 | FFmpeg | Demo video encoding | GPL-3.0-or-later | <https://ffmpeg.org/> |
 | Pi Coding Agent | Optional host for the Pi extension | MIT | <https://github.com/earendil-works/pi> |
+| Pi TUI | Terminal components for Pi bridge tests and the Pi host | MIT | <https://github.com/earendil-works/pi/tree/main/packages/tui> |
 
 Dependency versions are recorded in `package.json` and `package-lock.json`.
 

@@ -4,7 +4,7 @@
 
 Requirements:
 
-- Node.js 20 or newer;
+- Node.js 22.19 or newer for the Pi bridge test dependency (CI uses Node.js 24);
 - Firefox for extension testing.
 
 ```bash

@@ -14,9 +14,6 @@
     try { if (window[NS].ready) window[NS].show(); } catch (e) {}
     return "pi-web-annotator: already loaded";
   }
-  try {
-    if (window.__bhAnno && window.__bhAnno.destroy) window.__bhAnno.destroy();
-  } catch (e) {}
 
   // targetMode: "element" = click DOM elements | "text" = select words/sentences.
   var S = (window[NS] = { installed: true, ready: false, items: [],
@@ -32,10 +29,7 @@
   }
   var itemStore = globalThis.PiWebAnnotatorStorage.createAnnotationStorage({
     extensionStorage: globalThis.browser.storage.local,
-    pageStorage: localStorage,
     origin: location.origin,
-    pathname: location.pathname,
-    hash: location.hash,
   });
   var seq = 0;
   var PANEL_PLACEMENT_KEY = "pi-web-annotator:panel-placement:v1";

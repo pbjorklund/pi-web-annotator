@@ -6,7 +6,7 @@ Web Annotator for Pi does not send data to the developer, analytics services, ad
 
 ## Data kept in Firefox
 
-When you save an annotation, the extension stores a separate collection for that website in Firefox extension storage under a `pi-web-annotator:collection:v1:` key. It also stores the panel's normalized screen placement under `pi-web-annotator:panel-placement:v1` so the panel remains where you moved it after navigation. Earlier development versions used the website's `localStorage`; those collections are moved to extension storage automatically. A saved item can include:
+When you save an annotation, the extension stores a separate collection for that website in Firefox extension storage under a `pi-web-annotator:collection:v1:` key. It also stores the panel's normalized screen placement under `pi-web-annotator:panel-placement:v1` so the panel remains where you moved it after navigation. Collections in website `localStorage` are not imported, changed, or deleted. A saved item can include:
 
 - your note;
 - the page URL;

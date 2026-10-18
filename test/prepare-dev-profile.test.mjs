@@ -11,8 +11,6 @@ test('removes only stale Web Annotator for Pi permission records', async () => {
   const file = path.join(profileDir, 'extension-preferences.json');
   await writeFile(file, JSON.stringify({
     'pi-web-annotator@pbjorklund.com': { permissions: ['<all_urls>'] },
-    'pi-web-annotator@example.com': { permissions: ['<all_urls>'] },
-    'browser-annotations@pbjorklund.com': { permissions: ['<all_urls>'] },
     'other@example.com': { permissions: ['tabs'] },
   }));
 
@@ -20,8 +18,6 @@ test('removes only stale Web Annotator for Pi permission records', async () => {
 
   const preferences = JSON.parse(await readFile(file, 'utf8'));
   assert.equal(preferences['pi-web-annotator@pbjorklund.com'], undefined);
-  assert.equal(preferences['pi-web-annotator@example.com'], undefined);
-  assert.equal(preferences['browser-annotations@pbjorklund.com'], undefined);
   assert.deepEqual(preferences['other@example.com'], { permissions: ['tabs'] });
 });
 

@@ -5,9 +5,6 @@ import { pathToFileURL } from 'node:url';
 
 const ADDON_IDS = [
   'pi-web-annotator@pbjorklund.com',
-  'pi-web-annotator@example.com',
-  'browser-annotations@pbjorklund.com',
-  'browser-annotations-firefox@example.com',
 ];
 
 export async function clearStalePermissionRecord(profileDir) {

@@ -72,7 +72,7 @@ Fresh Pi sessions keep the bridge off, including when the package is configured 
 /annotator-server start
 ```
 
-The TUI's `Annotator` bar shows listening or active while the bridge runs and stays hidden when stopped. It does not start the bridge. Stopping removes only this bar; RPC and headless sessions create no terminal widget. The old `/annotation-server` command is removed.
+The TUI's `Annotator` bar shows listening or active while the bridge runs and stays hidden when stopped. It does not start the bridge. Stopping removes only this bar; RPC and headless sessions create no terminal widget.
 
 The bridge listens on `127.0.0.1:17373`. It accepts marked extension requests from the local Firefox background script and stops with the Pi session.
 
@@ -115,6 +115,8 @@ pi -e ./pi-extension/index.ts
 | `Esc` | Cancel the open note editor. |
 
 ## Privacy
+
+Collections in website `localStorage` are not imported, changed, or deleted. Only collections saved in Firefox extension storage are loaded.
 
 Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and the panel placement preference use Firefox extension storage, isolated from page scripts. The optional Pi bridge sends selected annotation data to Pi on `127.0.0.1` after explicit Firefox consent and a send action. Pi may then send that content to the model provider configured by the user.
 

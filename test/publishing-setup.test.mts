@@ -1,22 +1,25 @@
+import manifestData from '../extension/manifest.json' with {type: 'json'};
+import packageData from '../package.json' with {type: 'json'};
+import amoData from '../amo-metadata.json' with {type: 'json'};
+import {required} from '../pi-extension/contracts.ts';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { startDemoServer } from '../scripts/serve-demo.mjs';
+import { startDemoServer } from '../scripts/serve-demo.mts';
 
 const root = new URL('../', import.meta.url);
-const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), 'utf8'));
-const readText = async (path) => readFile(new URL(path, root), 'utf8');
+const readText = async (path: string) => readFile(new URL(path, root), 'utf8');
 
-async function assertPathsExist(paths) {
+async function assertPathsExist(paths: string[]) {
   for (const path of paths) {
     await access(new URL(path, root));
   }
 }
 
 test('publishing metadata describes the Firefox package', async () => {
-  const manifest = await readJson('extension/manifest.json');
-  const packageJson = await readJson('package.json');
-  const metadata = await readJson('amo-metadata.json');
+  const manifest = manifestData;
+  const packageJson = packageData;
+  const metadata = amoData;
 
   assert.equal(manifest.name, 'Web Annotator for Pi');
   assert.equal(manifest.browser_specific_settings.gecko.id, 'pi-web-annotator@pbjorklund.com');
@@ -25,7 +28,7 @@ test('publishing metadata describes the Firefox package', async () => {
     ['browsingActivity', 'websiteContent'],
   );
 
-  assert.equal(packageJson.scripts.lint, 'web-ext lint --source-dir extension --warnings-as-errors');
+  assert.equal(packageJson.scripts['lint:extension'], 'web-ext lint --source-dir extension --warnings-as-errors');
   assert.match(packageJson.scripts.build, /web-ext build/);
   assert.equal(packageJson.scripts.screenshots, 'node scripts/capture-screenshots.mjs');
   assert.equal(packageJson.scripts['demo:serve'], 'node scripts/serve-demo.mjs');
@@ -34,9 +37,11 @@ test('publishing metadata describes the Firefox package', async () => {
   assert.match(packageJson.scripts['demo:pi'], /^cd demo && pi /);
   assert.match(packageJson.scripts['sign:listed'], /--env-file-if-exists=\.env/);
   assert.match(packageJson.scripts['sign:listed'], /--channel listed/);
+  assert.match(packageJson.scripts['sign:listed'], /--upload-source-code/);
+  assert.equal(packageJson.scripts['build:source'], 'node scripts/source-archive.mjs');
   assert.equal(packageJson.devDependencies.playwright, '1.61.1');
   assert.equal(packageJson.name, 'pi-web-annotator');
-  assert.equal(packageJson.private, undefined);
+  assert.equal('private' in packageJson, false);
   assert.deepEqual(packageJson.files, ['pi-extension/']);
   assert.equal(packageJson.publishConfig.access, 'public');
   assert.equal(packageJson.scripts['release:validate'], 'node scripts/validate-release.mjs');
@@ -68,6 +73,7 @@ test('published releases trigger the Firefox publishing workflow', async () => {
   assert.match(releaseWorkflow, /npx playwright install --with-deps firefox/);
   assert.match(releaseWorkflow, /gh release upload/);
   assert.match(releaseWorkflow, /npm run sign:listed/);
+  assert.match(releaseWorkflow, /npm run build:source/);
 
   assert.match(releasing, /gh release create/);
   assert.match(releasing, /release\.published/);
@@ -141,7 +147,7 @@ test('publishing surface includes required release and demo files', async () => 
 });
 
 test('development files document the publishing setup', async () => {
-  const packageJson = await readJson('package.json');
+  const packageJson = packageData;
   const envExample = await readText('.env.example');
   assert.match(envExample, /^WEB_EXT_API_KEY=$/m);
   assert.match(envExample, /^WEB_EXT_API_SECRET=$/m);
@@ -227,12 +233,12 @@ test('demo server exposes only the local fixture', async () => {
   try {
     const page = await fetch(server.origin);
     assert.equal(page.status, 200);
-    assert.match(page.headers.get('content-type'), /^text\/html/);
+    assert.match(required(page.headers.get('content-type')), /^text\/html/);
     assert.match(await page.text(), /id="release-title"/);
 
     const styles = await fetch(`${server.origin}/styles.css`);
     assert.equal(styles.status, 200);
-    assert.match(styles.headers.get('content-type'), /^text\/css/);
+    assert.match(required(styles.headers.get('content-type')), /^text\/css/);
 
     const traversal = await fetch(`${server.origin}/%2e%2e%2fpackage.json`);
     assert.equal(traversal.status, 403);

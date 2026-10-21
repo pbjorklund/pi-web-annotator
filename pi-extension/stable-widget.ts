@@ -8,19 +8,17 @@ type Options = Parameters<WidgetUI["setWidget"]>[2];
 
 // Pi removes and reinserts widget keys on setWidget; refresh the mounted view instead.
 export function createStableWidget() {
-	type Mounted = Map<
-		string,
-		{
-			content: Exclude<Content, undefined>;
-			placement: Options;
-			update(content: Exclude<Content, undefined>): void;
-		}
-	>;
+	type MountedEntry = {
+		content: Exclude<Content, undefined>;
+		placement: Options;
+		update(content: Exclude<Content, undefined>): void;
+	};
+	type Mounted = Map<string, MountedEntry>;
 	// PI's bound setWidget capability survives fresh turn contexts and UI prompt wrappers.
 	const owners = new WeakMap<WidgetUI["setWidget"], Mounted>();
 	return (ui: WidgetUI | undefined, key: string, content: Content, options?: Options): void => {
 		if (!ui?.setWidget) return;
-		const mounted: Mounted = owners.get(ui.setWidget) ?? new Map();
+		const mounted: Mounted = owners.get(ui.setWidget) ?? new Map<string, MountedEntry>();
 		owners.set(ui.setWidget, mounted);
 		const previous = mounted.get(key);
 		if (content === undefined) {

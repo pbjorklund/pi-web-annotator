@@ -1,3 +1,4 @@
+import type {AnnotationJob} from '../pi-extension/contracts.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { connect } from 'node:net';
@@ -7,11 +8,11 @@ import {
   annotationJobMarker,
   createAnnotationServer,
   extractAnnotationJobId,
-} from '../pi-extension/server.mjs';
+} from '../pi-extension/server.ts';
 
 const BRIDGE_HEADER = { 'x-pi-web-annotator': '1' };
 
-async function post(url, path, body, headers = BRIDGE_HEADER) {
+async function post(url: string, path: string, body: unknown, headers: Record<string, string> = BRIDGE_HEADER) {
   return fetch(`${url}${path}`, {
     method: 'POST',
     headers: { ...headers, 'content-type': 'application/json' },
@@ -29,7 +30,7 @@ test('rejects browser requests without the extension marker header', async (t) =
 });
 
 test('accepts jobs and reports their state transitions', async (t) => {
-  const accepted = [];
+  const accepted: AnnotationJob[] = [];
   const bridge = await createAnnotationServer({
     port: 0,
     onJob(job) { accepted.push(job); },
@@ -79,13 +80,13 @@ test('shutdown closes an owned client with an incomplete HTTP body', async () =>
   const socket = connect(Number(new URL(bridge.url).port), '127.0.0.1');
   socket.on('error', () => {});
   await once(socket, 'connect');
-  const closed = new Promise(resolve => socket.once('close', resolve));
+  const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
   socket.write('POST /jobs HTTP/1.1\r\nHost: localhost\r\nx-pi-web-annotator: 1\r\nContent-Length: 100\r\n\r\n{');
   // A valid response on another connection proves the owned server is accepting traffic.
   const health = await fetch(`${bridge.url}/health`, { headers: BRIDGE_HEADER });
   assert.equal(health.status, 200);
   await health.json();
-  let timer;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const closing = bridge.close();
   try {
     await Promise.race([
@@ -100,6 +101,19 @@ test('shutdown closes an owned client with an incomplete HTTP body', async () =>
     socket.destroy();
     await closing;
   }
+});
+
+test('untrusted non-string IDs and nested annotation values cannot create jobs', async t => {
+  let accepted = 0;
+  const bridge = await createAnnotationServer({port: 0, onJob() {accepted++;}});
+  t.after(() => bridge.close());
+  for (const id of [12345678, null, {}, false]) {
+    const response = await post(bridge.url, '/jobs', {id, prompt: 'Fixture request', annotationIds: ['1']});
+    assert.equal(response.status, 400);
+  }
+  const response = await post(bridge.url, '/jobs', {id: 'job_fixture', prompt: 'Fixture request', annotationIds: [{}]});
+  assert.equal(response.status, 400);
+  assert.equal(accepted, 0);
 });
 
 test('round-trips hidden job markers', () => {

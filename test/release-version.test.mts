@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateReleaseTag } from '../scripts/validate-release.mjs';
+import { validateReleaseTag } from '../scripts/validate-release.mts';
 
 test('accepts a release tag matching package and Firefox versions', () => {
   assert.equal(validateReleaseTag('v1.6.1', '1.6.1', '1.6.1'), 'v1.6.1');

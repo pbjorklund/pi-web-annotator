@@ -1,16 +1,26 @@
+import {record} from '../pi-extension/contracts.ts';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { createAnnotationStorage } = require('../extension/annotation-storage.js');
+const imported: unknown = require('../extension/annotation-storage.js');
+const create = record(imported).createAnnotationStorage;
+if (typeof create !== 'function') throw new Error('Missing storage factory');
+const createAnnotationStorage = (options: AnnotationStorageOptions & {pageStorage?: unknown}) => {
+  const value: unknown = Reflect.apply(create, undefined, [options]), storage = record(value);
+  const {key, load, save} = storage;
+  if (typeof key !== 'string' || typeof load !== 'function' || typeof save !== 'function') throw new Error('Invalid generated storage API');
+  return {key, async load(normalize: (value: unknown) => unknown): Promise<unknown> { const value: unknown = await load.call(storage, normalize); return value; },
+    async save(items: unknown[]) { await save.call(storage, items); }};
+};
 
-function fakeExtensionStorage(initial = {}) {
+function fakeExtensionStorage(initial: Record<string, unknown> = {}) {
   const values = { ...initial };
   return {
     values,
-    async get(key) { return { [key]: values[key] }; },
-    async set(update) { Object.assign(values, update); },
+    async get(key: string) { return { [key]: values[key] }; },
+    async set(update: Record<string, unknown>) { Object.assign(values, update); },
   };
 }
 
@@ -35,7 +45,7 @@ test('loads an existing extension-owned collection', async () => {
     origin: 'https://example.com',
   });
 
-  const items = await storage.load((item) => ({ ...item, normalized: true }));
+  const items = await storage.load((item) => ({ ...record(item), normalized: true }));
 
   assert.deepEqual(items, [{ id: 2, normalized: true }]);
 });

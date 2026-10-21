@@ -1,10 +1,10 @@
 import { createStableWidget } from './stable-widget.ts';
-import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
+import type { Host, Context } from './host.ts';
 import {
   annotationJobMarker,
   createAnnotationServer,
   extractAnnotationJobId,
-} from './server.mjs';
+} from './server.ts';
 
 const configuredPort = Number.parseInt(process.env.PI_WEB_ANNOTATOR_PORT ?? '', 10);
 const PORT = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 17373;
@@ -12,24 +12,24 @@ const STATUS_ID = 'annotation-server';
 
 type AnnotationServer = Awaited<ReturnType<typeof createAnnotationServer>>;
 
-export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
+export default function piWebAnnotatorExtension(pi: Host) {
   const setWidget = createStableWidget();
   let server: AnnotationServer | undefined;
   let starting: Promise<void> | undefined;
   let stopping: Promise<void> | undefined;
   let generation = 0;
-  let currentContext: ExtensionContext | undefined;
+  let currentContext: Context | undefined;
   let activeJobId: string | undefined;
   let activeJobFailed = false;
 
-  function showRunningStatus(ctx: ExtensionContext) {
+  function showRunningStatus(ctx: Context) {
     if (ctx.mode !== 'tui' || !ctx.hasUI || typeof ctx.ui.setWidget !== 'function') return;
     try {
-      setWidget(ctx.ui, STATUS_ID, server ? [`Annotator · ${activeJobId ? 'active' : 'listening'} · :${PORT}`] : undefined);
+      setWidget({setWidget: ctx.ui.setWidget}, STATUS_ID, server ? [`Annotator · ${activeJobId ? 'active' : 'listening'} · :${PORT}`] : undefined);
     } catch {}
   }
 
-  async function startServer(ctx: ExtensionContext) {
+  async function startServer(ctx: Context) {
     const owner = generation;
     if (stopping) await stopping;
     if (owner !== generation) return;
@@ -39,7 +39,8 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     }
     if (!starting) {
       currentContext = ctx;
-      const pending: Promise<void> = (async () => {
+      let pending: Promise<void> | undefined;
+      pending = (async () => {
         try {
           const created = await createAnnotationServer({
             port: PORT,
@@ -78,7 +79,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     await starting;
   }
 
-  async function stopServer(ctx?: ExtensionContext) {
+  async function stopServer(ctx?: Context) {
     generation++;
     currentContext = undefined;
     const pending = starting;
@@ -87,7 +88,8 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     activeJobId = undefined;
     activeJobFailed = false;
     if (!stopping) {
-      const closing: Promise<void> = (async () => {
+      let closing: Promise<void> | undefined;
+      closing = (async () => {
         try {
           await Promise.all([pending?.catch(() => {}), running?.close()]);
         } finally {
@@ -98,7 +100,7 @@ export default function piWebAnnotatorExtension(pi: ExtensionAPI) {
     }
     await stopping;
     try {
-      if (ctx?.mode === 'tui' && ctx.hasUI) setWidget(ctx.ui, STATUS_ID, undefined);
+      if (ctx?.mode === 'tui' && ctx.hasUI && ctx.ui.setWidget) setWidget({setWidget: ctx.ui.setWidget}, STATUS_ID, undefined);
     } catch {}
     ctx?.ui.notify('Annotation server stopped', 'info');
   }

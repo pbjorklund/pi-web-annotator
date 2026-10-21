@@ -139,13 +139,11 @@ Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/
 
 ```bash
 npm ci
-npm test
-npm run lint
+npm run check
 npm run build
-npm run release:validate
 ```
 
-`npm ci` installs the pinned `pi-tui` development dependency used by bridge tests. PI supplies the runtime SDK; its peer packages remain optional for browser-only consumers.
+`npm ci` installs the locked TypeScript/lint toolchain and PI SDK 1.3.0 used by bridge tests. `check` runs strict non-emitting types, zero-warning lint, negative tooling probes, generated-output parity, and the existing browser/bridge/security tests. PI supplies the runtime SDK; its peer packages remain optional for browser-only consumers. Browser JavaScript and CLI MJS are generated from TypeScript, not maintained separately. See [the contribution guide](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) for the source layout and watch commands.
 
 The development toolchain uses a local node-forge security backport, verified during `npm test`. Its offline source and tarball checks require GNU tar. See [the backport notes](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/SECURITY-BACKPORT.md) for provenance, exploit tests, and audit/signature coverage limits.
 

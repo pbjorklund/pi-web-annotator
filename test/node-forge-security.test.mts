@@ -1,3 +1,5 @@
+import {record} from '../pi-extension/contracts.ts';
+import fixture from './fixtures/node-forge-signature-forgery.json' with {type: 'json'};
 import assert from 'node:assert/strict';
 import { constants, createHash, generateKeyPairSync, privateEncrypt, verify } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -5,13 +7,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import { verifyNodeForge } from '../scripts/verify-node-forge.mjs';
+import { verifyNodeForge } from '../scripts/verify-node-forge.mts';
 
 const require = createRequire(import.meta.url);
 const adbkitRequire = createRequire(require.resolve('@devicefarmer/adbkit'));
-const forge = adbkitRequire('node-forge');
-const fixture = JSON.parse(await readFile(new URL('./fixtures/node-forge-signature-forgery.json', import.meta.url)));
-const key = forge.pki.publicKeyFromPem(fixture.publicKey);
+const imported: unknown = adbkitRequire('node-forge');
+const pki = record(record(imported).pki);
+const parseKey = pki.publicKeyFromPem;
+if (typeof parseKey !== 'function') throw new Error('Missing public key parser');
+const publicKeyFromPem = (pem: string) => {
+  const value: unknown = parseKey.call(pki, pem);
+  const key = record(value), exponent = record(key.e);
+  const verifySignature = key.verify, intValue = exponent.intValue;
+  if (typeof verifySignature !== 'function' || typeof intValue !== 'function') throw new Error('Invalid public key interface');
+  return {verify(digest: string, signature: string): boolean {
+    const valid: unknown = verifySignature.call(key, digest, signature);
+    if (typeof valid !== 'boolean') throw new Error('Invalid verification result'); return valid;
+  }, e: {intValue(): number {
+    const value: unknown = intValue.call(exponent);
+    if (typeof value !== 'number') throw new Error('Invalid exponent'); return value;
+  }}};
+}
+const key = publicKeyFromPem(fixture.publicKey);
 const digest = createHash('sha256').update(fixture.message).digest('binary');
 
 test('rejects the low-exponent nested DigestAlgorithm signature forgery accepted by upstream 1.4.0', () => {
@@ -31,9 +48,9 @@ test('preserves valid PKCS#1 signatures and rejects a different message', () => 
 
 test('accepts the OID with optional NULL but rejects extra nested children in either form', () => {
   const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
-  const publicForgeKey = forge.pki.publicKeyFromPem(publicKey.export({ type: 'spki', format: 'pem' }));
+  const publicForgeKey = publicKeyFromPem(String(publicKey.export({ type: 'spki', format: 'pem' })));
   const hash = Buffer.from(digest, 'binary');
-  const sequence = value => Buffer.concat([Buffer.from([48, value.length]), value]);
+  const sequence = (value: Buffer) => Buffer.concat([Buffer.from([48, value.length]), value]);
   for (const withNull of [false, true]) {
     for (const withGarbage of [false, true]) {
       const algorithm = sequence(Buffer.concat([

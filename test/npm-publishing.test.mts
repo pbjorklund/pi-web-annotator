@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const root = new URL('../', import.meta.url);
-const readText = async (path) => readFile(new URL(path, root), 'utf8');
+const readText = async (path: string) => readFile(new URL(path, root), 'utf8');
 
 test('release workflow publishes to npm with trusted publishing', async () => {
   const workflow = await readText('.github/workflows/release.yml');

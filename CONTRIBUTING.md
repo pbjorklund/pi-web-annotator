@@ -10,8 +10,7 @@ Requirements:
 ```bash
 npm ci
 npx playwright install firefox
-npm test
-npm run lint
+npm run check
 ```
 
 The Playwright-managed Firefox build runs the panel interaction test. The system Firefox installation is still used for manual extension testing.
@@ -32,7 +31,7 @@ The maintainer-specific Zen Browser workflow uses the existing Zen profile:
 npm run dev:zen
 ```
 
-This workflow reloads after source changes and runs Zen plus `web-ext` in an isolated process group. Press `Ctrl-C` once to stop both processes.
+Both development commands watch TypeScript, regenerate the readable JavaScript, and let `web-ext` reload the extension. The Zen workflow runs Zen plus `web-ext` in an isolated process group. Press `Ctrl-C` once to stop both processes.
 
 ### Load into an existing browser
 
@@ -48,20 +47,26 @@ Temporary add-ons are removed when Firefox restarts. Firefox blocks extension in
 ## Development commands
 
 ```bash
+npm run check     # Strict types, lint, negative probes, generated parity, and tests
 npm test          # Contract, Firefox interaction, integration, and syntax checks
-npm run lint      # Firefox extension validation
-npm run build     # Unsigned ZIP in web-ext-artifacts/
-npm run package   # Test, lint, and build
+npm run lint      # Type-aware lint and Firefox validation; warnings fail
+npm run typecheck # Strict non-emitting check of every maintained TS/MTS file
+npm run build     # Regenerate JavaScript and build the unsigned Firefox ZIP
+npm run package   # Full check and build
 npm run demo:serve # Serve the local annotation target
 npm run screenshots # Rebuild committed demo screenshots
 npm run demo:video # Run one model-backed RPC smoke case and rebuild the MP4
 ```
 
+The locked TypeScript/ESLint/tsx toolchain and PI SDK 1.3.0 are repository-managed. Browser-only consumers still have optional PI peers. Type-aware lint rejects explicit `any`, unsafe operations on untyped values, unchecked assertions, and suppression comments. Negative fixtures exercise these failures. The four browser scripts, two Pi bridge modules, and CLI MJS outputs are excluded individually in `eslint.config.ts`; only `vendor/node-forge/` is excluded as vendored source. Ordinary TS declaration files for browser globals remain inside the non-emitting check.
+
+Use `npm run watch:typescript` to watch emission without starting a browser. Tests use isolated pages, loopback servers, and fixtures; they do not run the model-backed demo or touch an existing browser or Pi session.
+
 ## Make a change
 
-1. Keep the shipped source in `extension/` readable and free of remote code.
+1. Edit browser TypeScript in `src/browser/`, not the generated JavaScript in `extension/`. Keep the emitted code readable and free of remote code.
 2. Add or update a focused test before changing behavior.
-3. Run `npm test`, `npm run lint`, and `npm run build`.
+3. Run `npm run build:typescript` after source edits, then `npm run package`. Generated drift must fail `npm run check`, not be silently repaired by it.
 4. Update `PRIVACY.md` when storage, permissions, or data transmission changes.
 5. Update `THIRD_PARTY_NOTICES.md` and the shipped copy when adding bundled third-party code or changing direct development tools.
 
@@ -70,10 +75,11 @@ Do not commit API keys, signed XPI files, browser profiles, or user annotation d
 ## Repository layout
 
 ```text
-extension/        Firefox package source, shipped without a build step
-pi-extension/     Optional local Pi package and loopback server
-scripts/          Development and packaging helpers
-test/             Node-based contract and integration tests
+src/browser/      Maintained browser TypeScript
+extension/        Generated browser JavaScript and native Firefox assets
+pi-extension/     Typed Pi bridge, with generated server/contracts MJS
+scripts/          Typed development helpers and generated CLI MJS
+test/             Strictly checked TypeScript tests and fixtures
 artwork/          Source icon and generated demo screenshots
 demo/             Safe local page used for demos and captures
 docs/             AMO listing and release guidance

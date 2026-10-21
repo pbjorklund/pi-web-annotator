@@ -77,16 +77,19 @@ gh release create v<version> \
 
 Review the generated notes, then publish the draft in GitHub. The `release.published` event starts `.github/workflows/release.yml`.
 
+The TypeScript build requires matching source with every AMO submission, including readable generated JavaScript. `SOURCE.md` supplies reconstruction instructions. `npm run build:source` uses the committed Git `HEAD`, not ignored `.env` or other untracked files; run it only from the clean, prepared release checkout. The release workflow checks out the tag and attaches the source ZIP alongside the unsigned extension ZIP. Listed signing uploads that same source ZIP with `--upload-source-code`. Source-archive reconstruction must match the emitted files before publication.
+
 The workflow:
 
 1. checks out the release tag;
 2. rejects a tag that differs from `package.json` or `extension/manifest.json`;
-3. runs tests, Firefox lint, and the package build;
-4. publishes the Pi package to npm with OIDC and provenance;
-5. attaches the unsigned ZIP to the GitHub Release;
-6. submits the listed version to Firefox Add-ons;
-7. attaches a signed XPI when AMO returns one immediately;
-8. preserves all signing artifacts in the workflow run.
+3. runs strict type/lint checks, negative probes, generated parity, tests, and the package build;
+4. archives the committed matching source for AMO;
+5. publishes the Pi package to npm with OIDC and provenance;
+6. attaches the unsigned ZIP and source ZIP to the GitHub Release;
+7. submits the listed version to Firefox Add-ons;
+8. attaches a signed XPI when AMO returns one immediately;
+9. preserves all signing artifacts in the workflow run.
 
 Prereleases do not submit to AMO.
 

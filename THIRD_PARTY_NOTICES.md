@@ -24,6 +24,13 @@ These direct tools are used to develop, test, package, or host integrations. The
 | Playwright | Repeatable demo interaction and screenshot capture | Apache-2.0 | <https://github.com/microsoft/playwright> |
 | FFmpeg | Demo video encoding | GPL-3.0-or-later | <https://ffmpeg.org/> |
 | Pi Coding Agent | Optional host for the Pi extension | MIT | <https://github.com/earendil-works/pi> |
+| TypeScript | Static checks and deterministic JavaScript emission | Apache-2.0 | <https://github.com/microsoft/TypeScript> |
+| ESLint | Type-aware lint enforcement | MIT | <https://github.com/eslint/eslint> |
+| typescript-eslint | TypeScript parser and unsafe-operation lint rules | MIT | <https://github.com/typescript-eslint/typescript-eslint> |
+| tsx | Run TypeScript tests and build tooling | MIT | <https://github.com/privatenumber/tsx> |
+| jiti | Load TypeScript ESLint configuration | MIT | <https://github.com/unjs/jiti> |
+| Node.js types | Check Node-based implementation and tooling | MIT | <https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node> |
+| Pi AI | SDK types for PI integration checks | MIT | <https://github.com/earendil-works/pi/tree/main/packages/ai> |
 | Pi TUI | Terminal components for Pi bridge tests and the Pi host | MIT | <https://github.com/earendil-works/pi/tree/main/packages/tui> |
 
 Dependency versions are recorded in `package.json` and `package-lock.json`.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web Annotator for Pi",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.",
   "incognito": "not_allowed",
   "permissions": [

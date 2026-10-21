@@ -1,6 +1,6 @@
 {
   "name": "pi-web-annotator",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.",
   "keywords": [
     "firefox-extension",
@@ -13,7 +13,7 @@
     "pi-extension/"
   ],
   "scripts": {
-    "dev": "web-ext run --source-dir extension",
+    "dev": "npm run build:typescript && node scripts/develop.mjs",
     "dev:zen": "node scripts/prepare-dev-profile.mjs && node scripts/run-zen-dev.mjs",
     "demo:serve": "node scripts/serve-demo.mjs",
     "demo:browser": "node scripts/run-demo-browser.mjs",
@@ -21,12 +21,21 @@
     "demo:video": "python3 evals/live-demo/run.py",
     "demo:gif": "node scripts/encode-demo-gif.mjs",
     "screenshots": "node scripts/capture-screenshots.mjs",
-    "test": "node scripts/verify-node-forge.mjs --check && node test/validate-extension.mjs && node --no-warnings --test test/node-forge-security.test.mjs test/annotation-server.test.mjs test/annotation-storage.test.mjs test/background-bridge.test.mjs test/web-annotator-ui.test.mjs test/npm-publishing.test.mjs test/pi-extension.test.mjs test/prepare-dev-profile.test.mjs test/run-zen-dev.test.mjs test/publishing-setup.test.mjs test/release-version.test.mjs && node --check extension/annotation-storage.js && node --check extension/background.js && node --check extension/web-annotator.js && node --check extension/consent.js",
-    "lint": "web-ext lint --source-dir extension --warnings-as-errors",
-    "build": "web-ext build --source-dir extension --artifacts-dir web-ext-artifacts --filename pi-web-annotator-${npm_package_version}.zip --overwrite-dest",
-    "package": "npm test && npm run lint && npm run build",
+    "test": "node scripts/verify-node-forge.mjs --check && node --import tsx test/validate-extension.mts && node --import tsx --test test/*.test.mts && node --check extension/annotation-storage.js && node --check extension/background.js && node --check extension/web-annotator.js && node --check extension/consent.js",
+    "lint": "npm run lint:types && npm run lint:extension",
+    "build": "npm run build:typescript && web-ext build --source-dir extension --artifacts-dir web-ext-artifacts --filename pi-web-annotator-${npm_package_version}.zip --overwrite-dest",
+    "package": "npm run check && npm run build",
     "release:validate": "node scripts/validate-release.mjs",
-    "sign:listed": "node --env-file-if-exists=.env node_modules/web-ext/bin/web-ext.js sign --source-dir extension --artifacts-dir web-ext-artifacts --channel listed --amo-metadata amo-metadata.json --approval-timeout 0 --no-input"
+    "sign:listed": "npm run build:source && node --env-file-if-exists=.env node_modules/web-ext/bin/web-ext.js sign --source-dir extension --artifacts-dir web-ext-artifacts --channel listed --amo-metadata amo-metadata.json --approval-timeout 0 --no-input --upload-source-code web-ext-artifacts/pi-web-annotator-${npm_package_version}-source.zip",
+    "build:typescript": "tsx scripts/build-typescript.mts",
+    "check:build": "tsx scripts/build-typescript.mts --check",
+    "typecheck": "tsc --project tsconfig.json",
+    "lint:types": "eslint . --max-warnings 0",
+    "test:tooling": "tsx scripts/check-tooling.mts",
+    "lint:extension": "web-ext lint --source-dir extension --warnings-as-errors",
+    "watch:typescript": "tsx scripts/build-typescript.mts --watch",
+    "check": "npm run typecheck && npm run lint && npm run test:tooling && npm run check:build && npm test",
+    "build:source": "node scripts/source-archive.mjs"
   },
   "pi": {
     "extensions": [
@@ -36,17 +45,25 @@
     "video": "https://raw.githubusercontent.com/pbjorklund/pi-web-annotator/main/artwork/demo/pi-web-annotator-demo.mp4"
   },
   "devDependencies": {
-    "@earendil-works/pi-tui": "0.99.1",
+    "@earendil-works/pi-ai": "1.3.0",
+    "@earendil-works/pi-coding-agent": "1.3.0",
+    "@earendil-works/pi-tui": "1.3.0",
+    "@types/node": "22.20.5",
+    "eslint": "10.13.0",
+    "jiti": "2.7.0",
     "node-forge": "file:./vendor/node-forge-1.4.0-pi.1.tgz",
     "playwright": "1.61.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
     "web-ext": "10.7.0"
   },
   "overrides": {
     "node-forge": "$node-forge",
     "adm-zip": "0.6.1",
-    "brace-expansion": "1.1.21",
     "fast-uri": "3.1.8",
-    "shell-quote": "1.12.0"
+    "shell-quote": "1.12.0",
+    "brace-expansion@^1.1.0": "1.1.21"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

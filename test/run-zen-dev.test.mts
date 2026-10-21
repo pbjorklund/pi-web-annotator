@@ -6,9 +6,10 @@ import {
   createZenDevCommand,
   runZenDev,
   terminateProcessGroup,
-} from '../scripts/run-zen-dev.mjs';
+} from '../scripts/run-zen-dev.mts';
 
 class FakeChild extends EventEmitter {
+  readonly pid: number;
   constructor(pid = 4242) {
     super();
     this.pid = pid;
@@ -40,7 +41,7 @@ test('runs web-ext without terminal input in an isolated process group', () => {
 test('stops the whole web-ext and Zen process group on Ctrl-C', async () => {
   const child = new FakeChild();
   const signalSource = new EventEmitter();
-  const terminations = [];
+  const terminations: {pid: number; signal: NodeJS.Signals}[] = [];
   const run = runZenDev({
     signalSource,
     spawnProcess: () => child,
@@ -58,8 +59,7 @@ test('stops the whole web-ext and Zen process group on Ctrl-C', async () => {
 
 test('ignores an already-gone process group during shutdown', () => {
   assert.equal(terminateProcessGroup(4242, 'SIGTERM', () => {
-    const error = new Error('missing');
-    error.code = 'ESRCH';
+    const error = Object.assign(new Error('missing'), {code: 'ESRCH'});
     throw error;
   }), false);
 });

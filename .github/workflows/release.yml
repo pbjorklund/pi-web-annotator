@@ -43,10 +43,13 @@ jobs:
       - name: Test, lint, and build
         run: npm run package
 
+      - name: Package matching committed source for AMO review
+        run: npm run build:source
+
       - name: Publish Pi package to npm
         run: npm publish
 
-      - name: Attach unsigned package to GitHub Release
+      - name: Attach extension and source packages to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}

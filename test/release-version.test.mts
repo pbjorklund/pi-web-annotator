@@ -1,7 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateReleaseTag } from '../scripts/validate-release.mts';
+import { validateChangelog, validateReleaseTag } from '../scripts/validate-release.mts';
+
+test('accepts current release notes before verified older history', () => {
+  assert.doesNotThrow(() => validateChangelog('# Changelog\n\n## 2.0.3\n\n- Ship update notes.\n\n## 2.0.2\n\n- Validate messages.\n', '2.0.3'));
+});
+
+test('rejects missing, stale, empty or duplicate current release notes', () => {
+  for (const notes of [
+    '# Changelog\n',
+    '## 2.0.2\n\n- Older notes.\n',
+    '## 2.0.3\n\n## 2.0.2\n\n- Older notes.\n',
+    '## 2.0.3\n\n- Notes.\n\n## 2.0.3\n\n- Duplicate.\n',
+    '## 2.0.2\n\n- Older notes.\n\n## 2.0.3\n\n- Current notes.\n',
+  ]) {
+    assert.throws(() => validateChangelog(notes, '2.0.3'), /CHANGELOG.md/);
+  }
+});
 
 test('accepts a release tag matching package and Firefox versions', () => {
   assert.equal(validateReleaseTag('v1.6.1', '1.6.1', '1.6.1'), 'v1.6.1');

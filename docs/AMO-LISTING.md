@@ -34,9 +34,9 @@ With the optional local Pi bridge you can:
 
 The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage, isolated from page scripts. After Firefox consent and a send action, the extension sends annotation content to Pi on `127.0.0.1`. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
 
-## Release notes for 2.0.2
+## Release notes for 2.0.3
 
-Move browser and Pi bridge code to strictly checked TypeScript, with matching readable JavaScript and source archives for review. Validate stored notes and bridge messages, and reject malformed Pi RPC success values. Existing valid notes remain available. Permissions, consent, storage locations, and Pi data sharing are unchanged.
+Include versioned release notes in the Git and npm packages for Pi 1.5 update notices, and require current notes during package and release checks. Browser behavior, bridge commands, permissions, consent, storage, and Pi data sharing are unchanged.
 
 ## Privacy policy
 

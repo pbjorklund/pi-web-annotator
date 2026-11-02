@@ -15,18 +15,30 @@ export function validateReleaseTag(tag, packageVersion, firefoxVersion) {
     }
     return tag;
 }
+export function validateChangelog(changelog, version) {
+    const sections = [...changelog.matchAll(/^## (\d+\.\d+\.\d+)[^\S\r\n]*\r?$/gm)];
+    const current = sections[0];
+    if (!current || current[1] !== version || sections.filter(section => section[1] === version).length !== 1) {
+        throw new Error(`CHANGELOG.md must start with one ## ${version} release section`);
+    }
+    const body = changelog.slice(current.index + current[0].length, sections[1]?.index).trim();
+    if (!body)
+        throw new Error(`CHANGELOG.md has no release notes for ${version}`);
+}
 export async function validateRelease(tag) {
     const root = new URL('../', import.meta.url);
     const packageJson = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
     const manifest = JSON.parse(await readFile(new URL('extension/manifest.json', root), 'utf8'));
     if (!object(packageJson) || typeof packageJson.version !== 'string' || !object(manifest) || typeof manifest.version !== 'string')
         throw new Error('Invalid release metadata');
-    return validateReleaseTag(tag, packageJson.version, manifest.version);
+    const validatedTag = validateReleaseTag(tag, packageJson.version, manifest.version);
+    validateChangelog(await readFile(new URL('CHANGELOG.md', root), 'utf8'), packageJson.version);
+    return validatedTag;
 }
 async function main() {
     const tag = process.argv[2] ?? process.env.RELEASE_TAG ?? process.env.GITHUB_REF_NAME ?? '';
     const validatedTag = await validateRelease(tag);
-    console.log(`Release tag ${validatedTag} matches package and Firefox versions.`);
+    console.log(`Release tag ${validatedTag} matches package and Firefox versions, with current changelog notes.`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     main().catch((error) => {

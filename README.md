@@ -133,6 +133,10 @@ Annotations can contain page URLs, visible or selected text, element metadata, a
 | Optional `browsingActivity` | Allows page URLs to be included when the user sends annotations to local Pi. |
 | Optional `websiteContent` | Allows selected text and element context to be included when the user sends annotations to local Pi. |
 
+## Release notes
+
+Read [CHANGELOG.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CHANGELOG.md) for versioned changes. Git and npm packages include this file for native Pi 1.5 update notices.
+
 ## Maintain and validate
 
 Read [CONTRIBUTING.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/CONTRIBUTING.md) before opening a pull request. Run the local release gate with:

@@ -3,7 +3,11 @@ import packageData from '../package.json' with {type: 'json'};
 import amoData from '../amo-metadata.json' with {type: 'json'};
 import {required} from '../pi-extension/contracts.ts';
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { startDemoServer } from '../scripts/serve-demo.mts';
 
@@ -42,7 +46,6 @@ test('publishing metadata describes the Firefox package', async () => {
   assert.equal(packageJson.devDependencies.playwright, '1.61.1');
   assert.equal(packageJson.name, 'pi-web-annotator');
   assert.equal('private' in packageJson, false);
-  assert.deepEqual(packageJson.files, ['pi-extension/']);
   assert.equal(packageJson.publishConfig.access, 'public');
   assert.equal(packageJson.scripts['release:validate'], 'node scripts/validate-release.mjs');
   assert.equal(
@@ -57,6 +60,26 @@ test('publishing metadata describes the Firefox package', async () => {
   assert.deepEqual(metadata.categories.firefox, ['web-development']);
   assert.deepEqual(metadata.version.compatibility, ['firefox']);
   assert.equal(metadata.version.license, 'MIT');
+});
+
+test('npm distribution contains current release notes and bridge entrypoints', async () => {
+  const destination = await mkdtemp(join(tmpdir(), 'annotator-package-'));
+  try {
+    execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', destination], {
+      cwd: fileURLToPath(root), stdio: 'pipe',
+    });
+    const archive = join(destination, `pi-web-annotator-${packageData.version}.tgz`);
+    const packedNotes = execFileSync('tar', ['-xOf', archive, 'package/CHANGELOG.md'], { encoding: 'utf8' });
+    assert.equal(packedNotes, await readText('CHANGELOG.md'));
+    assert.ok(packedNotes.includes(`## ${packageData.version}\n`));
+    const files = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).split('\n');
+    for (const entry of ['index.ts', 'host.ts', 'stable-widget.ts', 'server.mjs', 'contracts.mjs']) {
+      assert.ok(files.includes(`package/pi-extension/${entry}`), `npm package must include ${entry}`);
+    }
+    assert.ok(!files.some(file => file.includes('.env') || file.includes('/vendor/')));
+  } finally {
+    await rm(destination, { recursive: true, force: true });
+  }
 });
 
 test('published releases trigger the Firefox publishing workflow', async () => {

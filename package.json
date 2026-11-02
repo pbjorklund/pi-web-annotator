@@ -1,6 +1,6 @@
 {
   "name": "pi-web-annotator",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Annotate webpage elements or text, send targeted change requests to Pi, or copy them as Markdown.",
   "keywords": [
     "firefox-extension",
@@ -10,7 +10,8 @@
     "markdown"
   ],
   "files": [
-    "pi-extension/"
+    "pi-extension/",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "npm run build:typescript && node scripts/develop.mjs",
@@ -34,7 +35,7 @@
     "test:tooling": "tsx scripts/check-tooling.mts",
     "lint:extension": "web-ext lint --source-dir extension --warnings-as-errors",
     "watch:typescript": "tsx scripts/build-typescript.mts --watch",
-    "check": "npm run typecheck && npm run lint && npm run test:tooling && npm run check:build && npm test",
+    "check": "npm run typecheck && npm run lint && npm run test:tooling && npm run check:build && npm test && npm run release:validate -- v${npm_package_version}",
     "build:source": "node scripts/source-archive.mjs"
   },
   "pi": {

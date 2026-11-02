@@ -27,7 +27,7 @@ Do not add an npm token to GitHub. Trusted publishing uses short-lived OIDC cred
 
 1. Update `version` in `package.json` and `extension/manifest.json`.
 2. Run `npm install --package-lock-only` so `package-lock.json` matches.
-3. Update release notes in `amo-metadata.json` and `docs/AMO-LISTING.md`.
+3. Add a nonempty `## <version>` section at the top of root `CHANGELOG.md`, describing only verified changes. Keep older entries below it; do not invent missing history. Update release notes in `amo-metadata.json` and `docs/AMO-LISTING.md`.
 4. Update `PRIVACY.md` when storage, permissions, or transmission changed.
 5. Review the AMO metadata and privacy text against the shipped behavior.
 6. Run the local gate:
@@ -40,6 +40,8 @@ npm audit signatures
 npm run release:validate -- v<version>
 unzip -l web-ext-artifacts/pi-web-annotator-<version>.zip
 ```
+
+`npm run package` and `release:validate` reject missing, empty, duplicate, or stale current changelog sections. `CHANGELOG.md` ships in both Git and npm packages for Pi update notices; keep it in the npm `files` allowlist. Check `npm pack --dry-run` before publication to confirm the changelog and `pi-extension/` entrypoints are included.
 
 `npm run package` also verifies the local node-forge security backport and runs its exploit tests. Read [SECURITY-BACKPORT.md](SECURITY-BACKPORT.md) before evaluating audit and signature output: the custom tarball is verified locally, not certified as an upstream patched registry release. GNU tar is required for the offline reproducibility check.
 

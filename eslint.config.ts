@@ -1,6 +1,6 @@
 import tseslint from "typescript-eslint";
 
-export default tseslint.config({ ignores: ["vendor/node-forge/**", "extension/annotation-storage.js", "extension/background.js", "extension/consent.js", "extension/web-annotator.js", "pi-extension/server.mjs", "pi-extension/contracts.mjs", "scripts/prepare-dev-profile.mjs", "scripts/validate-release.mjs", "scripts/build-typescript.mjs", "scripts/develop.mjs", "scripts/source-archive.mjs", "scripts/browser-fixture.mjs", "scripts/capture-screenshots.mjs", "scripts/encode-demo-gif.mjs", "scripts/pi-rpc-client.mjs", "scripts/record-live-demo.mjs", "scripts/run-demo-browser.mjs", "scripts/run-zen-dev.mjs", "scripts/serve-demo.mjs", "scripts/verify-node-forge.mjs"] }, {
+export default tseslint.config({ ignores: ["vendor/node-forge/**", "vendor/deepmerge/**", "extension/annotation-storage.js", "extension/background.js", "extension/consent.js", "extension/web-annotator.js", "pi-extension/server.mjs", "pi-extension/contracts.mjs", "scripts/prepare-dev-profile.mjs", "scripts/validate-release.mjs", "scripts/build-typescript.mjs", "scripts/develop.mjs", "scripts/source-archive.mjs", "scripts/browser-fixture.mjs", "scripts/capture-screenshots.mjs", "scripts/encode-demo-gif.mjs", "scripts/pi-rpc-client.mjs", "scripts/record-live-demo.mjs", "scripts/run-demo-browser.mjs", "scripts/run-zen-dev.mjs", "scripts/serve-demo.mjs", "scripts/verify-node-forge.mjs", "scripts/verify-deepmerge.mjs"] }, {
   files: ["**/*.ts", "**/*.mts"],
   languageOptions: {
     parser: tseslint.parser,

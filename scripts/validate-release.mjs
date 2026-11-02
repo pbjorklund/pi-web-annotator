@@ -16,9 +16,9 @@ export function validateReleaseTag(tag, packageVersion, firefoxVersion) {
     return tag;
 }
 export function validateChangelog(changelog, version) {
-    const sections = [...changelog.matchAll(/^## (\d+\.\d+\.\d+)[^\S\r\n]*\r?$/gm)];
+    const sections = [...changelog.matchAll(/^## ([^\r\n]+)\r?$/gm)];
     const current = sections[0];
-    if (!current || current[1] !== version || sections.filter(section => section[1] === version).length !== 1) {
+    if (!current || current[1]?.trim() !== version || sections.filter(section => section[1]?.trim() === version).length !== 1) {
         throw new Error(`CHANGELOG.md must start with one ## ${version} release section`);
     }
     const body = changelog.slice(current.index + current[0].length, sections[1]?.index).trim();

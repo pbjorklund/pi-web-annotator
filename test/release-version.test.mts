@@ -12,6 +12,7 @@ test('rejects missing, stale, empty or duplicate current release notes', () => {
     '# Changelog\n',
     '## 2.0.2\n\n- Older notes.\n',
     '## 2.0.3\n\n## 2.0.2\n\n- Older notes.\n',
+    '## 2.0.3\n\n## Unreleased\n\n- Future notes.\n',
     '## 2.0.3\n\n- Notes.\n\n## 2.0.3\n\n- Duplicate.\n',
     '## 2.0.2\n\n- Older notes.\n\n## 2.0.3\n\n- Current notes.\n',
   ]) {

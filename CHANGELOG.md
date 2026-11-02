@@ -4,6 +4,7 @@
 
 - Include versioned release notes in Git and npm packages for Pi 1.5 update notices.
 - Reject releases without a nonempty, version-matched changelog entry during package checks and release validation.
+- Repair release-toolchain dependencies with fixed undici, fast-uri and minimatch versions, a compatible multimatch update, and a source-verified local deepmerge prototype-poisoning fix. These dependencies are not bundled into the published Pi or Firefox packages.
 - Browser behavior, bridge commands, permissions, consent, storage, and data sharing are unchanged.
 
 ## 2.0.2

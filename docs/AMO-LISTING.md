@@ -36,7 +36,7 @@ The extension has no developer-operated service, analytics, advertising, or acco
 
 ## Release notes for 2.0.3
 
-Include versioned release notes in the Git and npm packages for Pi 1.5 update notices, and require current notes during package and release checks. Browser behavior, bridge commands, permissions, consent, storage, and Pi data sharing are unchanged.
+Include versioned release notes in the Git and npm packages for Pi 1.5 update notices, and require current notes during package and release checks. Repair release-toolchain dependencies, including a source-verified local deepmerge security backport; these dependencies are not bundled into the Pi or Firefox packages. Browser behavior, bridge commands, permissions, consent, storage, and Pi data sharing are unchanged.
 
 ## Privacy policy
 

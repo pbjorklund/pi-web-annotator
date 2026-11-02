@@ -4,11 +4,15 @@ vendor/*
 !vendor/node-forge/
 !vendor/node-forge-1.4.0.upstream.tgz
 !vendor/node-forge-1.4.0-pi.1.tgz
+!vendor/deepmerge/
+!vendor/deepmerge-4.3.1.upstream.tgz
+!vendor/deepmerge-4.3.1-pi.1.tgz
 __pycache__/
 *.pyc
 
 # Build outputs
 dist/
+!vendor/deepmerge/dist/
 build/
 target/
 web-ext-artifacts/

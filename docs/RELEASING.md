@@ -43,7 +43,7 @@ unzip -l web-ext-artifacts/pi-web-annotator-<version>.zip
 
 `npm run package` and `release:validate` reject missing, empty, duplicate, or stale current changelog sections. `CHANGELOG.md` ships in both Git and npm packages for Pi update notices; keep it in the npm `files` allowlist. Check `npm pack --dry-run` before publication to confirm the changelog and `pi-extension/` entrypoints are included.
 
-`npm run package` also verifies the local node-forge security backport and runs its exploit tests. Read [SECURITY-BACKPORT.md](SECURITY-BACKPORT.md) before evaluating audit and signature output: the custom tarball is verified locally, not certified as an upstream patched registry release. GNU tar is required for the offline reproducibility check.
+`npm run package` also verifies the local node-forge and deepmerge security backports and runs their exploit tests. Read [SECURITY-BACKPORT.md](SECURITY-BACKPORT.md) and [DEPENDENCY-SECURITY.md](DEPENDENCY-SECURITY.md) before evaluating audit and signature output: the custom tarballs are verified locally, not certified as upstream patched registry releases. GNU tar is required for the offline reproducibility check.
 
 The ZIP must contain these twelve readable files:
 

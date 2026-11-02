@@ -45,3 +45,14 @@ The repository vendors the Node source of node-forge 1.4.0 with the RSA parser f
 - Patch: <https://github.com/digitalbazaar/forge/pull/1152>
 
 See `docs/SECURITY-BACKPORT.md` for signed-source provenance, reproducibility checks, exploit tests and audit coverage limits.
+
+### Local deepmerge development backport
+
+The repository vendors deepmerge 4.3.1 with the `__proto__` key filter proposed in upstream PR 286, pinned to unmerged contributor commit `9add7d91abb595703679faf7b7942bbe7f87642b`. The custom build is `4.3.1-pi.1`, not an official upstream release. It is used only by the development toolchain and is excluded from both published packages.
+
+- Copyright: James Halliday and Josh Duff, preserved in `vendor/deepmerge/license.txt`.
+- License: MIT.
+- Source: <https://github.com/TehShrike/deepmerge>
+- Patch: <https://github.com/TehShrike/deepmerge/pull/286>
+
+See `docs/DEPENDENCY-SECURITY.md` for signed-source provenance, reproducibility checks, exploit tests and audit coverage limits.

@@ -58,7 +58,7 @@ npm run screenshots # Rebuild committed demo screenshots
 npm run demo:video # Run one model-backed RPC smoke case and rebuild the MP4
 ```
 
-The locked TypeScript/ESLint/tsx toolchain and PI SDK 1.3.0 are repository-managed. Browser-only consumers still have optional PI peers. Type-aware lint rejects explicit `any`, unsafe operations on untyped values, unchecked assertions, and suppression comments. Negative fixtures exercise these failures. The four browser scripts, two Pi bridge modules, and CLI MJS outputs are excluded individually in `eslint.config.ts`; only `vendor/node-forge/` is excluded as vendored source. Ordinary TS declaration files for browser globals remain inside the non-emitting check.
+The locked TypeScript/ESLint/tsx toolchain and PI SDK 1.3.0 are repository-managed. Browser-only consumers still have optional PI peers. Type-aware lint rejects explicit `any`, unsafe operations on untyped values, unchecked assertions, and suppression comments. Negative fixtures exercise these failures. The four browser scripts, two Pi bridge modules, and CLI MJS outputs are excluded individually in `eslint.config.ts`; only `vendor/node-forge/` and `vendor/deepmerge/` are excluded as vendored source. Ordinary TS declaration files for browser globals remain inside the non-emitting check.
 
 Use `npm run watch:typescript` to watch emission without starting a browser. Tests use isolated pages, loopback servers, and fixtures; they do not run the model-backed demo or touch an existing browser or Pi session.
 

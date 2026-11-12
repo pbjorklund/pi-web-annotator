@@ -1,5 +1,9 @@
 # Repository guidance
 
+## Living behavior specification
+
+Read `docs/extension-walkthrough.md` alongside README and relevant source before changes. Keep it as the canonical behavior overview; update it in the same delivery when capture, storage, exports, commands, permissions, bridge lifecycle or privacy changes. Record the reviewed revision and distinguish runtime guarantees, worker instructions, synthetic tests and live evidence. Keep README concise and retain detailed privacy, demo, release and security procedures as linked references. Review storage isolation separately from rendered DOM exposure, and lifecycle status separately from verified source changes. If behavior is unchanged, verify that explicitly in review.
+
 ## Product documentation and marketing
 
 Keep `README.md` and the companion pbcms page at `../pbcms/src/content/projects/pi-web-annotator/index.md` accurate when a change affects public behavior, setup, permissions, privacy, browser support, the Pi bridge, or project status.

@@ -8,15 +8,17 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 Use it when visual webpage review needs exact element or selected-text context. Do not use it for automated accessibility audits, remote team review, Firefox for Android, or pages whose secrets must not enter browser storage or an agent transcript. The Firefox extension works without PI; install the bridge only when direct local delivery is useful.
 
+Read the [behavior walkthrough](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/extension-walkthrough.md) for the full capture, storage, export, bridge lifecycle and privacy contract.
+
 ## Features
 
 - **Element annotations:** point at a button, card, heading, image, or other element and attach a change request.
 - **Text annotations:** select a phrase or paragraph and keep the quoted text with the note.
-- **Source-friendly context:** capture stable attributes, visible text, component hints when available, and a positional fallback.
+- **Source-friendly context:** capture element attributes, text, component hints when available, and a positional fallback.
 - **Cross-page collections:** keep one review collection while navigating within the same site.
 - **Movable review panel:** drag the panel out of the way or dock it by keyboard; its placement survives navigation.
 - **Editable notes:** revise a pending annotation without recapturing its element or selected text.
-- **Pi-ready export:** copy one annotation or the full collection as Markdown or JSON.
+- **Pi-ready export:** copy one annotation as Markdown, or the full collection as Markdown or JSON.
 - **Optional Pi workflow:** send one note, send all pending notes, or save and send in one action.
 - **Live Pi status:** distinguish pending, queued, active, and completed work.
 - **Keyboard workflow:** annotate, pause capture, switch modes, copy, save, and dismiss without leaving the page.
@@ -46,7 +48,7 @@ To test an unreleased change, follow the temporary installation steps in [CONTRI
 2. Select text on the page.
 3. Write the requested change and save it.
 
-Text annotations use an amber highlight. Element annotations use green outlines and pins. Numbered pins expand to fit longer IDs and stack vertically when comments would overlap, including multiple comments on the same element.
+Text annotations use an amber highlight. A green outline previews the hovered element; saved annotations use numbered pins. Numbered pins expand to fit longer IDs and stack vertically when comments would overlap, including multiple comments on the same element.
 
 ### Export a review
 
@@ -56,7 +58,7 @@ Text annotations use an amber highlight. Element annotations use green outlines 
 - `Alt+Shift+J` copies the collection as JSON.
 - **Clear** removes the current site's collection after confirmation.
 
-The Markdown includes page URLs, source or component hints when available, stable attributes, visible text, selected text, and a positional DOM fallback. Page-derived values are marked as untrusted reference data for the receiving agent.
+The Markdown includes page URLs, available source/component hints, element attributes and text, selected text, and a positional DOM fallback. Ordinary Markdown copy has no untrusted-data preface. Pi sends add instructions to treat page values as untrusted; those instructions do not enforce agent behavior.
 
 ## Send annotations to Pi
 
@@ -74,18 +76,18 @@ Fresh Pi sessions keep the bridge off, including when the package is configured 
 
 The TUI's `Annotator` bar shows listening or active while the bridge runs and stays hidden when stopped. It does not start the bridge. Stopping removes only this bar; RPC and headless sessions create no terminal widget.
 
-The bridge listens on `127.0.0.1:17373`. It accepts marked extension requests from the local Firefox background script and stops with the Pi session.
+The bridge listens on `127.0.0.1:17373` and stops with the Pi session. Its constant request header is not user authentication; local software can send it too. Stopping the listener does not cancel Pi work already delivered.
 
-The first send opens a bundled consent page. Choose **Allow sending to local Pi**, approve Firefox's optional data permission, return to the annotated page, and send again. Nothing is sent to Pi before both consent and a send action.
+The first send opens a bundled consent page. Choose **Allow sending to local Pi**, approve Firefox's optional data permission, return to the annotated page, and send again. This regular send flow checks permission before submitting annotation content. Health probes and stored job-ID status requests run separately; the bridge itself does not verify Firefox permission.
 
 | Browser state | Meaning |
 | --- | --- |
 | Empty checkbox | The annotation is pending and ready to send. |
 | Right arrow | Pi accepted and queued the annotation. |
-| Spinner | Pi is working on the annotation. |
-| Checked checkbox | Pi finished the annotation. |
+| Spinner | Submission is pending or Pi reports active work. |
+| Checked checkbox | Pi reported lifecycle completion, or you checked the row manually. Neither proves a correct fix. |
 
-Use **Save and send** for a new note, the arrow button for one pending row, or **Send to Pi** for all pending rows. A toast confirms queue and completion events.
+Use **Save and send** for a new note, the arrow button for one pending row, or **Send to Pi** for all pending rows across the current origin, including other pages. A toast confirms queue and completion events.
 
 Pi bridge commands:
 
@@ -109,7 +111,7 @@ pi -e ./pi-extension/index.ts
 | `Alt+Shift+J` | Copy all annotations as JSON. |
 | `Alt+A` | Pause or resume page capture while the panel stays open. |
 | `Alt+T` | Switch between element and text mode. |
-| `Ctrl+Enter` / `Cmd+Enter` | Run the primary save action: save and send when Pi is connected, otherwise save. |
+| `Ctrl+Enter` / `Cmd+Enter` | Save a new note and send when Pi is connected; save only when editing an existing note. |
 | Arrow keys on the **Annotations** title | Dock the panel to a viewport edge. |
 | `Home` on the **Annotations** title | Reset the panel to the bottom-right. |
 | `Esc` | Cancel the open note editor. |
@@ -118,9 +120,9 @@ pi -e ./pi-extension/index.ts
 
 Collections in website `localStorage` are not imported, changed, or deleted. Only collections saved in Firefox extension storage are loaded.
 
-Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and the panel placement preference use Firefox extension storage, isolated from page scripts. The optional Pi bridge sends selected annotation data to Pi on `127.0.0.1` after explicit Firefox consent and a send action. Pi may then send that content to the model provider configured by the user.
+Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and panel placement use Firefox extension storage. Page scripts cannot directly access that storage, but they can inspect or alter notes rendered in the ordinary page DOM. The optional Pi send flow checks Firefox permission before sending selected annotation content to `127.0.0.1`. Pi may then send that content to the model provider configured by the user.
 
-Annotations can contain page URLs, visible or selected text, element metadata, and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
+Annotations can contain full URLs, selected text, element `textContent` including hidden descendants, custom attributes and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
 
 ## Permissions
 

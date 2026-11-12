@@ -2,6 +2,8 @@
 
 This folder is a safe, local target for browser annotations. It contains only fixture copy and styles, so Pi can work here without reading the repository or a real website.
 
+The [behavior walkthrough](../docs/extension-walkthrough.md) explains the normal extension and bridge. These instructions cover fixture demonstrations; they do not establish general model reliability or add a sandbox to the normal bridge.
+
 ## Run the live workflow
 
 Open three terminals from the repository root:

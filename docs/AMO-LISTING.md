@@ -23,7 +23,7 @@ Annotate webpage elements or text, send targeted change requests to Pi, or copy 
 
 Review a web page without leaving Firefox.
 
-Click an element or select text, write a change request, and collect structured annotations across reloads and page navigation. Copy one note or the whole review as Markdown or JSON for Pi, or send it through the optional local Pi bridge.
+Click an element or select text, write a change request, and collect structured annotations across reloads and page navigation. Copy one note as Markdown, or the whole review as Markdown or JSON for Pi, or send it through the optional local Pi bridge.
 
 With the optional local Pi bridge you can:
 
@@ -32,7 +32,7 @@ With the optional local Pi bridge you can:
 - see when work is queued, active, or complete;
 - receive completion notifications in the browser.
 
-The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage, isolated from page scripts. After Firefox consent and a send action, the extension sends annotation content to Pi on `127.0.0.1`. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
+The extension has no developer-operated service, analytics, advertising, or account system. Saved annotations use Firefox extension storage. Page scripts cannot directly access that storage, but can inspect or alter notes rendered in the page DOM. Avoid secrets. The regular send flow checks Firefox permission before sending annotation content to Pi on `127.0.0.1`; health probes and job-ID status requests run separately. Pi may then send it to the model provider configured by the user. The extension is unavailable in private windows.
 
 ## Release notes for 2.0.3
 
@@ -40,7 +40,7 @@ Include versioned release notes in the Git and npm packages for Pi 1.5 update no
 
 ## Privacy policy
 
-Use the current contents or public URL of `PRIVACY.md`.
+Use the current contents or public URL of `PRIVACY.md`. The [behavior walkthrough](extension-walkthrough.md) documents capture, storage, exports and bridge limits; listing copy must match it and the shipped source.
 
 ## Reviewer notes
 

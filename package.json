@@ -11,7 +11,9 @@
   ],
   "files": [
     "pi-extension/",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "PRIVACY.md",
+    "docs/extension-walkthrough.md"
   ],
   "scripts": {
     "dev": "npm run build:typescript && node scripts/develop.mjs",

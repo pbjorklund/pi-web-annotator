@@ -64,6 +64,8 @@ Use `npm run watch:typescript` to watch emission without starting a browser. Tes
 
 ## Make a change
 
+Read and update the canonical [behavior walkthrough](docs/extension-walkthrough.md) with affected behavior; retain detailed procedures in their owning documents.
+
 1. Edit browser TypeScript in `src/browser/`, not the generated JavaScript in `extension/`. Keep the emitted code readable and free of remote code.
 2. Add or update a focused test before changing behavior.
 3. Run `npm run build:typescript` after source edits, then `npm run package`. Generated drift must fail `npm run check`, not be silently repaired by it.

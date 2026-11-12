@@ -2,7 +2,7 @@
 
 A published GitHub Release is the release command. It creates the version tag, publishes the Pi package to npm, stores the unsigned review package, and triggers listed submission to Firefox Add-ons.
 
-Do not publish a release until the security gate, package gate, and listing review pass.
+Do not publish a release until the security gate, package gate, and listing review pass. Review the [behavior walkthrough](extension-walkthrough.md) against the candidate source; it owns the behavior overview, while this file owns the release procedure.
 
 ## One-time GitHub setup
 

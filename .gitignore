@@ -27,7 +27,8 @@ test-results/
 .env.local
 
 # Workflow tools
-.af/
+**/.af/*
+!/.af/config
 
 # IDE
 .vscode/settings.json

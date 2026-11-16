@@ -36,7 +36,7 @@ The extension has no developer-operated service, analytics, advertising, or acco
 
 ## Release notes for 2.0.4
 
-Require both optional Firefox data permissions before every background annotation send and job-status relay. Refuse missing, revoked, unavailable or invalid permission results before serialization or network admission, without prompting. Health probes remain usable without data permission. No new permissions, data categories, destinations or bridge commands; an admission check cannot retract requests already sent.
+Require both optional Firefox data permissions before every background annotation send and job-status relay. Refuse missing, revoked, unavailable or invalid permission results before serialization or network admission, without prompting. Health probes remain usable without data permission. No new permissions, data categories, destinations or bridge commands; an admission check cannot retract requests already sent. Fence overlapping sends and stale consent, send, status and setup replies within an overlay. Retire replaced UI and keep retries explicit: teardown cannot undo accepted work, and retrying can duplicate it.
 
 ## Privacy policy
 

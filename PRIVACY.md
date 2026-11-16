@@ -26,6 +26,8 @@ The Pi integration is off unless a Pi annotation server is running on your devic
 
 The regular send flow checks permission, and the background independently rechecks both Firefox data permissions before every annotation send and stored job-ID status relay to `http://127.0.0.1:17373`. Missing, revoked, unavailable or invalid permission results refuse these relays before data serialization or network admission; the relays do not prompt or open consent tabs. JSON export retains more stored fields than the Markdown send payload. The mounted overlay still makes permission-independent health probes carrying no annotation text. A permission check cannot retract a request already sent. The HTTP server does not verify Firefox consent or authenticate other local clients. `127.0.0.1` is the loopback address for the same device. The bridge does not connect to a developer-operated service. Its constant request header is not user authentication; local software able to send it can submit jobs. Stopping the listener or deleting a browser note does not cancel work already delivered to Pi. Pi and any model provider configured in Pi handle the annotation after it leaves Firefox; review their privacy terms and your Pi configuration before sending sensitive material.
 
+An overlay reserves selected rows while consent is checked. Clear, Delete, manual status changes or turning off the overlay can invalidate an unsent selection, but cannot cancel requests, Pi work or storage writes already admitted. A failed or timed-out reply can mean Pi received the request; inspect Pi before explicitly retrying to avoid duplicate work.
+
 ## Permissions and browser access
 
 - **Active tab and scripting:** inject and remove the overlay after you use the toolbar button or shortcut.
@@ -36,7 +38,7 @@ The regular send flow checks permission, and the background independently rechec
 
 Firefox blocks extension injection on protected pages such as `about:` pages, the Firefox Add-ons site, PDFs, and `view-source:` pages.
 
-For the source-grounded capture, export and job lifecycle details, read the [behavior walkthrough](docs/extension-walkthrough.md). These source clarifications include the reviewed 2.0.4 candidate's tighter browser-relay checks, without adding data categories, destinations or Firefox permissions. Source review does not establish publication or the version loaded by an installed browser.
+For the source-grounded capture, export and job lifecycle details, read the [behavior walkthrough](docs/extension-walkthrough.md). These source clarifications include the reviewed 2.0.4 candidate's browser-relay permission checks and send/lifecycle fences, without adding data categories, destinations or Firefox permissions. Source review does not establish publication or the version loaded by an installed browser.
 
 ## Changes and questions
 

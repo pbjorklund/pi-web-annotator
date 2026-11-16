@@ -89,6 +89,8 @@ The first send opens a bundled consent page. Choose **Allow sending to local Pi*
 
 Use **Save and send** for a new note, the arrow button for one pending row, or **Send to Pi** for all pending rows across the current origin, including other pages. A toast confirms queue and completion events.
 
+Each overlay reserves selected rows during consent, so overlapping clicks skip those rows rather than queue retries; other pending rows can still be sent. Deleting, clearing or manually toggling a row invalidates its old selection; late replies cannot overwrite a newer row/job state. After a failed or timed-out send, inspect Pi before sending again: retries can duplicate work already accepted. Turning off the overlay stops new activity but cannot retract requests or storage writes already admitted.
+
 Pi bridge commands:
 
 ```text

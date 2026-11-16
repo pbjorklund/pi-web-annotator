@@ -39,6 +39,18 @@ async function annotationServerRequest(path: string, options?: RequestInit) {
   }
 }
 
+async function annotationDataMessage(message: Record<string, unknown>) {
+  let granted = false;
+  try {
+    granted = await api.permissions.contains(PI_DATA_PERMISSION);
+  } catch { /* Missing or failing permission APIs cannot authorize a relay. */ }
+  if (granted !== true) return { ok: false, error: "Firefox data permission is required. Review consent with Send to Pi." };
+  if (message.type === "pi-web-annotator-send") {
+    return annotationServerRequest("/jobs", { method: "POST", body: JSON.stringify(message.job) });
+  }
+  return annotationServerRequest("/jobs/status", { method: "POST", body: JSON.stringify({ ids: message.jobIds }) });
+}
+
 function annotationServerMessage(message: unknown) {
   if (!backgroundObject(message) || typeof message.type !== "string") return undefined;
   if (message.type === "pi-web-annotator-health") {
@@ -51,17 +63,8 @@ function annotationServerMessage(message: unknown) {
       return { granted: false };
     });
   }
-  if (message.type === "pi-web-annotator-send") {
-    return annotationServerRequest("/jobs", {
-      method: "POST",
-      body: JSON.stringify(message.job),
-    });
-  }
-  if (message.type === "pi-web-annotator-status") {
-    return annotationServerRequest("/jobs/status", {
-      method: "POST",
-      body: JSON.stringify({ ids: message.jobIds }),
-    });
+  if (message.type === "pi-web-annotator-send" || message.type === "pi-web-annotator-status") {
+    return annotationDataMessage(message);
   }
   return undefined;
 }

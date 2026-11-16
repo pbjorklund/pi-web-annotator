@@ -24,6 +24,22 @@
     var S = (window[NS] = { installed: true, ready: false, items: [],
         mode: (typeof window.__piWebAnnotatorStartMode === "boolean" ? window.__piWebAnnotatorStartMode : true),
         targetMode: "element" });
+    var disposed = false, INSTANCE_EVENT = "pi-web-annotator-instance-changed";
+    // Retire a predecessor before installing this instance's history wrappers or UI.
+    window.dispatchEvent(new Event(INSTANCE_EVENT));
+    function live() {
+        if (!disposed && window[NS] !== S)
+            S.destroy?.();
+        return !disposed && window[NS] === S;
+    }
+    function onInstanceChanged() { if (window[NS] !== S)
+        S.destroy?.(); }
+    function later(action, delay) {
+        if (!live())
+            return 0;
+        return window.setTimeout(function () { if (live())
+            action(); }, delay);
+    }
     function pageKey() { return location.origin + location.pathname + location.search + location.hash; }
     function pageUrl() { return location.href; }
     function object(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
@@ -74,13 +90,16 @@
     var PANEL_PLACEMENT_KEY = "pi-web-annotator:panel-placement:v1";
     var PANEL_MARGIN = 8;
     var panelPlacement = null;
-    function save() { itemStore.save(S.items).catch(function () { }); }
+    function save() { if (live())
+        itemStore.save(S.items).catch(function () { }); }
     function normalizePanelPlacement(value) {
         if (!object(value) || !finite(Number(value.x)) || !finite(Number(value.y)))
             return null;
         return { x: Math.max(0, Math.min(1, Number(value.x))), y: Math.max(0, Math.min(1, Number(value.y))) };
     }
     function savePanelPlacement() {
+        if (!live())
+            return;
         globalThis.browser.storage.local.set({ [PANEL_PLACEMENT_KEY]: panelPlacement }).catch(function () { });
     }
     function isCurrentPage(a) { return (a.pageKey || "") === pageKey(); }
@@ -252,16 +271,18 @@
         showInputAt(anchorX, anchorY);
         input.setAttribute("aria-label", label);
         inTa.placeholder = placeholder;
-        window.setTimeout(function () { inTa.focus(); }, 0);
+        later(function () { inTa.focus(); }, 0);
     }
     var panel = el("div", { id: "bh-panel" });
     var toast = el("div", { id: "bh-toast", role: "status", "aria-live": "polite", "aria-atomic": "true" });
     var _toastTimer = 0;
     function showToast(message) {
+        if (!live())
+            return;
         clearTimeout(_toastTimer);
         toast.textContent = message;
         toast.classList.add("show");
-        _toastTimer = window.setTimeout(function () { toast.classList.remove("show"); }, 4000);
+        _toastTimer = later(function () { toast.classList.remove("show"); }, 4000);
     }
     var ph = el("div", { class: "h" });
     var pTitle = el("button", { class: "ttl", type: "button", "aria-label": "Annotations. Move annotation panel. Drag with the pointer, use arrow keys to dock, or press Home to reset.", title: "Drag to move · Arrow keys dock · Home resets" });
@@ -340,6 +361,8 @@
         setPanelPlacement(next.x, next.y, true);
     }
     function dockPanelFromKey(e) {
+        if (!live())
+            return;
         var current = panelPlacement || { x: 1, y: 1 };
         if (e.key === "Home") {
             e.preventDefault();
@@ -361,6 +384,8 @@
     }
     var panelDrag = null, suppressPanelClick = false;
     function onPanelPointerDown(e) {
+        if (!live())
+            return;
         if (e.button !== 0)
             return;
         var control = e.target instanceof Element ? e.target.closest("button,a,input,textarea,select,[role=button]") : null;
@@ -379,7 +404,7 @@
         e.preventDefault();
     }
     function onPanelPointerMove(e) {
-        if (!panelDrag || panelDrag.id !== e.pointerId)
+        if (!live() || !panelDrag || panelDrag.id !== e.pointerId)
             return;
         var r = panel.getBoundingClientRect();
         var travelX = Math.max(0, innerWidth - r.width - PANEL_MARGIN * 2);
@@ -393,12 +418,12 @@
         e.preventDefault();
     }
     function onPanelPointerUp(e) {
-        if (!panelDrag || panelDrag.id !== e.pointerId)
+        if (!live() || !panelDrag || panelDrag.id !== e.pointerId)
             return;
         var activateTitle = panelDrag.title && !panelDrag.moved;
         suppressPanelClick = panelDrag.moved || activateTitle;
         if (suppressPanelClick)
-            window.setTimeout(function () { suppressPanelClick = false; }, 0);
+            later(function () { suppressPanelClick = false; }, 0);
         panelDrag = null;
         ph.classList.remove("bh-dragging");
         if (ph.hasPointerCapture(e.pointerId))
@@ -410,7 +435,7 @@
         e.preventDefault();
     }
     function onPanelPointerCancel(e) {
-        if (!panelDrag || panelDrag.id !== e.pointerId)
+        if (!live() || !panelDrag || panelDrag.id !== e.pointerId)
             return;
         panelPlacement = panelDrag.previous;
         panelDrag = null;
@@ -426,6 +451,8 @@
     ph.addEventListener("pointerup", onPanelPointerUp);
     ph.addEventListener("pointercancel", onPanelPointerCancel);
     pTitle.onclick = function () {
+        if (!live())
+            return;
         if (suppressPanelClick) {
             suppressPanelClick = false;
             return;
@@ -436,6 +463,8 @@
     var pinLayer = el("div", { id: "bh-pins" });
     pinLayer.style.cssText = "position:absolute;top:0;left:0;width:0;height:0;z-index:" + (Z + 1);
     function mount() {
+        if (!live())
+            return;
         var b = document.body || document.documentElement;
         var head = document.head || b;
         if (st.parentNode !== head)
@@ -448,6 +477,7 @@
         startPiPolling();
     }
     // ---------- text mark helpers ----------
+    var ownedTextMarks = new Set();
     // Wrap a Range in a <mark> element with our tracking attribute.
     function wrapSelection(range, annoId) {
         try {
@@ -458,6 +488,7 @@
             var mark = document.createElement("mark");
             mark.setAttribute("data-bh-anno-id", String(annoId));
             range.surroundContents(mark);
+            ownedTextMarks.add(mark);
             return mark;
         }
         catch (e) {
@@ -469,6 +500,7 @@
                 var frag = range.extractContents();
                 mark.appendChild(frag);
                 range.insertNode(mark);
+                ownedTextMarks.add(mark);
                 return mark;
             }
             catch (e2) {
@@ -476,18 +508,24 @@
             }
         }
     }
-    // Remove all marks associated with a given annotation ID.
+    function unwrapTextMark(mark) {
+        ownedTextMarks.delete(mark);
+        var parent = mark.parentNode;
+        if (!parent)
+            return;
+        while (mark.firstChild)
+            parent.insertBefore(mark.firstChild, mark);
+        parent.removeChild(mark);
+    }
+    // Remove only this instance's marks for the annotation.
     function removeTextMark(annoId) {
+        if (!live())
+            return;
         try {
-            var marks = document.querySelectorAll("mark[data-bh-anno-id='" + String(annoId) + "']");
-            for (var i = 0; i < marks.length; i++) {
-                var m = marks[i], parent = m.parentNode;
-                if (!parent)
-                    continue;
-                while (m.firstChild)
-                    parent.insertBefore(m.firstChild, m);
-                parent.removeChild(m);
-            }
+            ownedTextMarks.forEach(function (mark) {
+                if (mark.getAttribute("data-bh-anno-id") === String(annoId))
+                    unwrapTextMark(mark);
+            });
         }
         catch (e) { }
     }
@@ -586,6 +624,8 @@
         return snippet ? label + ' "' + snippet + '"' : label;
     }
     function onMove(e) {
+        if (!live())
+            return;
         if (!S.mode) {
             hl.style.display = "none";
             textHl.style.display = "none";
@@ -781,7 +821,7 @@
     // Track a pending text mark in case the user cancels, so we can unwind it.
     var _pendingMarkId = null;
     function onClick(e) {
-        if (!S.mode || S.targetMode !== "element" || isUI(e.target))
+        if (!live() || !S.mode || S.targetMode !== "element" || isUI(e.target))
             return;
         // Drop an open editor before switching to a new element capture.
         cancelPending();
@@ -815,11 +855,11 @@
         return { text: text.slice(0, half) + " … " + text.slice(-half), truncated: true };
     }
     function onTextSelect() {
-        if (!S.mode || S.targetMode !== "text")
+        if (!live() || !S.mode || S.targetMode !== "text")
             return;
         // Delay: let the selection settle (double-click, triple-click expand in steps)
         clearTimeout(_selTimer);
-        _selTimer = window.setTimeout(function () { captureSelection(); }, 220);
+        _selTimer = later(function () { captureSelection(); }, 220);
     }
     var _selTimer = 0;
     var _lastSelText = "";
@@ -896,14 +936,14 @@
         openEditor(pending, "", "Add annotation", "Note for this text…", lastRect.right + 8, lastRect.bottom + 8);
     }
     function focusEditButton(id) {
-        window.setTimeout(function () {
+        later(function () {
             var control = list.querySelector("[data-bh-edit-id='" + String(id) + "']");
             if (control && !control.disabled)
                 control.focus();
         }, 0);
     }
     function beginEdit(a, e) {
-        if (a.piStatus !== "pending")
+        if (!present(a) || a.piStatus !== "pending" || sendOwners.has(a))
             return;
         cancelPending();
         if (!(e.currentTarget instanceof Element))
@@ -916,6 +956,8 @@
         bSaveSend.disabled = true;
     }
     function commit() {
+        if (!live())
+            return;
         if (!pending && !editingItem)
             return;
         var note = inTa.value.trim();
@@ -924,13 +966,14 @@
             return;
         }
         if (editingItem) {
-            if (editingItem.piStatus !== "pending") {
+            if (!present(editingItem) || editingItem.piStatus !== "pending" || sendOwners.has(editingItem)) {
                 showToast("This annotation changed state and can no longer be edited.");
                 cancelPending();
                 pTitle.focus();
                 return;
             }
             var edited = editingItem;
+            invalidateItem(edited);
             edited.note = note;
             editingItem = null;
             input.style.display = "none";
@@ -951,6 +994,8 @@
         return item;
     }
     function cancelPending(restoreEditFocus = false) {
+        if (!live())
+            return;
         // Clean up pending state (text mark, element capture, or edit) without touching mode.
         var editId = editingItem && editingItem.id;
         if (_pendingMarkId) {
@@ -968,8 +1013,14 @@
     }
     function cancel() { cancelPending(true); }
     // ---------- Pi bridge ----------
-    var piConnected = false, _piPollTimer = 0, _piPollBusy = false;
-    function pendingPiItems() { return S.items.filter(function (a) { return a.piStatus === "pending"; }); }
+    var piConnected = false, _piPollTimer = 0, _piPollBusy = false, connectionRevision = 0;
+    var rowRevisions = new WeakMap(), sendOwners = new WeakMap();
+    function present(a) { return live() && S.items.indexOf(a) >= 0; }
+    function invalidateItem(a) { rowRevisions.set(a, {}); sendOwners.delete(a); }
+    function ownsSend(a, owner, expected) {
+        return present(a) && sendOwners.get(a) === owner && rowRevisions.get(a) === owner && a.piStatus === expected;
+    }
+    function pendingPiItems() { return S.items.filter(function (a) { return a.piStatus === "pending" && !sendOwners.has(a); }); }
     function piStatusLabel(status) {
         if (status === "sending")
             return "Sending to Pi";
@@ -982,6 +1033,9 @@
         return "Not completed";
     }
     function updatePiConnection(connected) {
+        if (!live())
+            return;
+        connectionRevision++;
         var connectionChanged = piConnected !== connected;
         piConnected = connected;
         piDot.classList.toggle("connected", connected);
@@ -1021,36 +1075,53 @@
         }
     }
     async function refreshPiState() {
-        if (_piPollBusy)
+        if (!live() || _piPollBusy)
             return;
         _piPollBusy = true;
         try {
+            var connection = connectionRevision;
             var health = await sendPiBridge({ type: "pi-web-annotator-health" });
-            updatePiConnection(!!(health && health.ok));
+            if (!live())
+                return;
+            if (connection === connectionRevision)
+                updatePiConnection(!!health.ok);
             if (!piConnected)
                 return;
             var jobIds = [];
-            S.items.forEach(function (a) { if (a.piJobId && jobIds.indexOf(a.piJobId) < 0)
-                jobIds.push(a.piJobId); });
+            var snapshots = [];
+            S.items.forEach(function (a) {
+                if (!a.piJobId)
+                    return;
+                if (jobIds.indexOf(a.piJobId) < 0)
+                    jobIds.push(a.piJobId);
+                snapshots.push({ item: a, jobId: a.piJobId, revision: rowRevisions.get(a), state: a.piStatus });
+            });
             if (!jobIds.length)
                 return;
             var response = await sendPiBridge({ type: "pi-web-annotator-status", jobIds: jobIds });
-            if (!response || !response.ok || !response.jobs)
+            if (!live() || !response.ok || !response.jobs)
                 return;
             var changed = false, completedIds = [];
-            S.items.forEach(function (a) {
-                var next = a.piJobId && response.jobs?.[a.piJobId];
+            snapshots.forEach(function (snapshot) {
+                var a = snapshot.item;
+                if (!present(a) || a.piJobId !== snapshot.jobId || a.piStatus !== snapshot.state
+                    || rowRevisions.get(a) !== snapshot.revision)
+                    return;
+                var next = response.jobs?.[snapshot.jobId];
                 if (next && next !== a.piStatus) {
                     if (next === "completed")
                         completedIds.push(a.id);
                     a.piStatus = next;
                     delete a.piSendingAt;
+                    invalidateItem(a);
                     changed = true;
                 }
-                else if (!next && a.piJobId && (a.piStatus === "sent" || a.piStatus === "in_progress" || (a.piStatus === "sending" && Date.now() - (a.piSendingAt || 0) > 60000))) {
+                else if (!next && (a.piStatus === "sent" || a.piStatus === "in_progress"
+                    || (a.piStatus === "sending" && Date.now() - (a.piSendingAt || 0) > 60000))) {
                     a.piStatus = "pending";
                     delete a.piJobId;
                     delete a.piSendingAt;
+                    invalidateItem(a);
                     changed = true;
                 }
             });
@@ -1068,7 +1139,7 @@
         }
     }
     function startPiPolling() {
-        if (_piPollTimer)
+        if (!live() || _piPollTimer)
             return;
         refreshPiState();
         _piPollTimer = window.setInterval(refreshPiState, 2000);
@@ -1078,9 +1149,13 @@
             return "job_" + globalThis.crypto.randomUUID().replace(/-/g, "");
         return "job_" + Date.now().toString(36) + Math.random().toString(36).slice(2);
     }
+    var _sendFlashTimer = 0;
     function flashSend(label) {
+        if (!live())
+            return;
+        clearTimeout(_sendFlashTimer);
         bSend.textContent = label;
-        window.setTimeout(function () { bSend.textContent = "Send to Pi"; render(); }, 1200);
+        _sendFlashTimer = later(function () { _sendFlashTimer = 0; bSend.textContent = "Send to Pi"; render(); }, 1200);
     }
     async function ensurePiDataConsent() {
         try {
@@ -1091,62 +1166,80 @@
             return false;
         }
     }
-    async function sendItemsToPi(items, trigger) {
-        items = items.filter(function (a) { return a.piStatus === "pending"; });
-        if (!items.length || !piConnected)
+    async function sendItemsToPi(items) {
+        if (!live() || !piConnected || editingItem)
             return;
-        if (!(await ensurePiDataConsent())) {
-            showToast("Grant Pi access in the Firefox tab, then send again.");
-            return;
-        }
-        var jobId = newPiJobId(), sendingAt = Date.now();
-        items.forEach(function (a) { a.piJobId = jobId; a.piSendingAt = sendingAt; a.piStatus = "sending"; });
-        save();
-        render();
-        if (trigger)
-            trigger.disabled = true;
-        else
-            bSend.textContent = "Sending…";
-        var response = await sendPiBridge({
-            type: "pi-web-annotator-send",
-            job: {
-                id: jobId,
-                prompt: PROMPT_PRE + "\n\n" + toMarkdown(items),
-                annotationIds: items.map(function (a) { return String(a.id); })
-            }
+        var owner = {};
+        var claimed = items.filter(function (a) {
+            if (!present(a) || a.piStatus !== "pending" || sendOwners.has(a))
+                return false;
+            sendOwners.set(a, owner);
+            rowRevisions.set(a, owner);
+            return true;
         });
-        if (!response || !response.ok) {
-            items.forEach(function (a) {
-                if (a.piJobId === jobId && a.piStatus === "sending") {
-                    a.piStatus = "pending";
+        if (!claimed.length)
+            return;
+        render();
+        try {
+            var granted = await ensurePiDataConsent();
+            if (!live())
+                return;
+            items = claimed.filter(function (a) { return ownsSend(a, owner, "pending"); });
+            if (!items.length || editingItem)
+                return;
+            if (!granted) {
+                showToast("Grant Pi access in the Firefox tab, then send again.");
+                return;
+            }
+            var jobId = newPiJobId(), sendingAt = Date.now();
+            var job = { id: jobId, prompt: PROMPT_PRE + "\n\n" + toMarkdown(items),
+                annotationIds: items.map(function (a) { return String(a.id); }) };
+            items.forEach(function (a) { a.piJobId = jobId; a.piSendingAt = sendingAt; a.piStatus = "sending"; });
+            save();
+            render();
+            var response = await sendPiBridge({ type: "pi-web-annotator-send", job: job });
+            if (!live())
+                return;
+            var owned = items.filter(function (a) { return ownsSend(a, owner, "sending") && a.piJobId === jobId; });
+            if (!owned.length)
+                return;
+            owned.forEach(function (a) {
+                a.piStatus = response.ok ? response.status || "sent" : "pending";
+                delete a.piSendingAt;
+                if (!response.ok)
                     delete a.piJobId;
-                    delete a.piSendingAt;
-                }
+                invalidateItem(a);
             });
             save();
-            updatePiConnection(false);
+            updatePiConnection(!!response.ok);
             render();
-            showToast("Could not send to Pi. Start the annotation server and try again.");
-            if (!trigger)
+            if (!response.ok) {
+                showToast("Pi delivery failed or is uncertain. Check Pi before retrying.");
                 flashSend("Failed");
-            return;
-        }
-        items.forEach(function (a) { a.piStatus = response.status || "sent"; delete a.piSendingAt; });
-        save();
-        render();
-        showToast(items.length === 1 ? "Annotation #" + items[0].id + " queued in Pi" : items.length + " annotations queued in Pi");
-        if (!trigger)
+                return;
+            }
+            showToast(owned.length === 1 ? "Annotation #" + owned[0].id + " queued in Pi" : owned.length + " annotations queued in Pi");
             flashSend("Sent");
+        }
+        finally {
+            var released = false;
+            claimed.forEach(function (a) {
+                if (sendOwners.get(a) !== owner)
+                    return;
+                sendOwners.delete(a);
+                if (present(a))
+                    released = true;
+            });
+            if (live() && released)
+                render();
+        }
     }
     function sendPendingToPi() { return sendItemsToPi(pendingPiItems()); }
-    function sendItemToPi(a) {
-        var trigger = this;
-        return sendItemsToPi([a], trigger);
-    }
+    function sendItemToPi(a) { return sendItemsToPi([a]); }
     function commitAndSend() {
         var item = commit();
         if (item)
-            return sendItemToPi.call(bSaveSend, item);
+            return sendItemToPi(item);
     }
     function commitPrimaryAction() {
         if (!bSaveSend.disabled)
@@ -1155,7 +1248,7 @@
     }
     // ---------- render ----------
     function render() {
-        if (!list || !pTitle)
+        if (!live() || !list || !pTitle)
             return;
         pTitle.textContent = "Annotations " + S.items.length;
         pTitle.setAttribute("aria-label", "Annotations " + S.items.length + ". Move annotation panel. Drag with the pointer, use arrow keys to dock, or press Home to reset.");
@@ -1190,6 +1283,9 @@
                 check.disabled = !!editingItem;
                 check.onchange = function (e) {
                     e.stopPropagation();
+                    if (!present(a))
+                        return;
+                    invalidateItem(a);
                     a.piStatus = check.checked ? "completed" : "pending";
                     delete a.piJobId;
                     save();
@@ -1230,13 +1326,13 @@
             }
             var send = el("button", { class: "act send", title: "Send this annotation to Pi", "aria-label": "Send annotation " + a.id + " to Pi" });
             send.type = "button";
-            send.disabled = !piConnected || a.piStatus !== "pending" || !!editingItem;
+            send.disabled = !piConnected || a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
             send.appendChild(icon("send"));
-            send.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sendItemToPi.call(send, a); };
+            send.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sendItemToPi(a); };
             var edit = el("button", { class: "act e", title: "Edit this pending annotation", "aria-label": "Edit annotation " + a.id, "data-bh-edit-id": a.id });
             edit.type = "button";
             edit.textContent = "✎";
-            edit.disabled = a.piStatus !== "pending" || !!editingItem;
+            edit.disabled = a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
             edit.onclick = function (e) { e.preventDefault(); e.stopPropagation(); beginEdit(a, e); };
             var c = el("button", { class: "act c", title: "Copy this annotation", "aria-label": "Copy annotation " + a.id });
             c.type = "button";
@@ -1247,7 +1343,8 @@
             x.type = "button";
             x.textContent = "✕";
             x.disabled = !!editingItem;
-            x.onclick = function (e) { e.preventDefault(); e.stopPropagation(); removeTextMark(a.id); S.items = S.items.filter(function (q) { return q.id !== a.id; }); save(); render(); };
+            x.onclick = function (e) { e.preventDefault(); e.stopPropagation(); if (!present(a))
+                return; removeTextMark(a.id); S.items = S.items.filter(function (q) { return q.id !== a.id; }); save(); render(); };
             it.appendChild(state);
             it.appendChild(n);
             it.appendChild(b);
@@ -1261,7 +1358,7 @@
         applyPanelPlacement();
     }
     function layoutPins() {
-        if (!pinLayer)
+        if (!live() || !pinLayer)
             return;
         pinLayer.innerHTML = "";
         var placed = [];
@@ -1310,13 +1407,15 @@
     }
     // coalesce pin relayout to one rAF per frame (scroll/resize fire far faster than paint)
     var _pinRAF = 0;
-    function scheduleLayout() { if (_pinRAF)
+    function scheduleLayout() { if (!live() || _pinRAF)
         return; _pinRAF = requestAnimationFrame(function () { _pinRAF = 0; layoutPins(); }); }
     // ---------- wiring ----------
     document.addEventListener("mousemove", onMove, true);
     document.addEventListener("click", onClick, true);
     document.addEventListener("mouseup", onTextSelect, true);
     function onKey(e) {
+        if (!live())
+            return;
         if (e.key === "Escape" && input.style.display === "block")
             cancel();
         if (e.altKey && !e.shiftKey && (e.key === "a" || e.key === "A")) {
@@ -1342,27 +1441,32 @@
     }
     document.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", scheduleLayout, true);
-    function onResize() { scheduleLayout(); applyPanelPlacement(); }
+    function onResize() { if (!live())
+        return; scheduleLayout(); applyPanelPlacement(); }
     window.addEventListener("resize", onResize);
     // ---------- SPA route awareness ----------
     // On client-side navigation, keep the collection and only refresh page-local pins.
     function refreshForPath() {
+        if (!live())
+            return;
         if (pending || editingItem)
             cancelPending();
         render();
     }
     var _routeT = 0;
-    function onRoute() { clearTimeout(_routeT); _routeT = window.setTimeout(refreshForPath, 150); }
+    function onRoute() { if (!live())
+        return; clearTimeout(_routeT); _routeT = later(refreshForPath, 150); }
     var _histWrapped = [];
     ["pushState", "replaceState"].forEach(function (name) {
         var orig = history[name];
         if (typeof orig !== "function")
             return;
-        history[name] = function (...args) { var r = orig.apply(this, args); try {
+        var wrapped = function (...args) { var r = orig.apply(this, args); try {
             onRoute();
         }
         catch (e) { } return r; };
-        _histWrapped.push([name, orig]);
+        history[name] = wrapped;
+        _histWrapped.push([name, orig, wrapped]);
     });
     window.addEventListener("popstate", onRoute);
     window.addEventListener("hashchange", onRoute);
@@ -1490,9 +1594,14 @@
         });
         return L.join("\n");
     }
-    function flashCopy(label) { var o = bCopy.textContent; bCopy.textContent = label; window.setTimeout(function () { bCopy.textContent = o; }, 1200); }
+    function flashCopy(label) { if (!live())
+        return; var o = bCopy.textContent; bCopy.textContent = label; later(function () { bCopy.textContent = o; }, 1200); }
     function copyText(text) {
+        if (!live())
+            return;
         var fallback = function () {
+            if (!live())
+                return;
             try {
                 var ta = el("textarea", {});
                 ta.value = text;
@@ -1534,10 +1643,14 @@
     bCancel.onclick = cancel;
     bCopy.onclick = copyMarkdown;
     bSend.onclick = sendPendingToPi;
-    bMode.onclick = function () { S.mode = !S.mode; render(); };
-    bTarget.onclick = function () { S.targetMode = S.targetMode === "element" ? "text" : "element"; render(); };
+    bMode.onclick = function () { if (!live())
+        return; S.mode = !S.mode; render(); };
+    bTarget.onclick = function () { if (!live())
+        return; S.targetMode = S.targetMode === "element" ? "text" : "element"; render(); };
     bClear.onclick = function () {
-        if (confirm("Clear all annotations collected on this site?")) {
+        if (!live())
+            return;
+        if (confirm("Clear all annotations collected on this site?") && live()) {
             cancelPending(); // clean up any pending annotation
             S.items.forEach(function (a) { if (a.type === "text")
                 removeTextMark(a.id); });
@@ -1548,7 +1661,7 @@
         }
     };
     // ---------- public API ----------
-    S.show = function () { if (panel)
+    S.show = function () { if (live() && panel)
         panel.style.display = "flex"; };
     S.dump = function () { return S.items; };
     S.markdown = toMarkdown;
@@ -1556,12 +1669,21 @@
     S.copy = copyMarkdown; // background (Alt+Shift+C) calls this public method, not the closure
     S.copyJson = copyJson; // Alt+Shift+J
     S.copyPrompt = copyPrompt;
-    S.clear = function () { S.items = []; save(); render(); };
+    S.clear = function () { if (!live())
+        return; S.items = []; save(); render(); };
     // Flip from passive display to interactive capture.
-    S.activate = function () { S.mode = true; render(); };
+    S.activate = function () { if (!live())
+        return; S.mode = true; render(); };
     // Full teardown - clean removal (drop all nodes + listeners + restore history) for any caller.
     S.destroy = function () {
+        if (disposed)
+            return "pi-web-annotator: removed";
+        disposed = true;
+        S.installed = false;
+        S.ready = false;
         try {
+            window.removeEventListener(INSTANCE_EVENT, onInstanceChanged);
+            document.removeEventListener("DOMContentLoaded", mount);
             document.removeEventListener("mousemove", onMove, true);
             document.removeEventListener("click", onClick, true);
             document.removeEventListener("mouseup", onTextSelect, true);
@@ -1582,24 +1704,21 @@
                 clearTimeout(_toastTimer);
                 _toastTimer = 0;
             }
+            if (_sendFlashTimer) {
+                clearTimeout(_sendFlashTimer);
+                _sendFlashTimer = 0;
+            }
             window.removeEventListener("popstate", onRoute);
             window.removeEventListener("hashchange", onRoute);
             clearTimeout(_routeT);
             _histWrapped.forEach(function (w) { try {
-                history[w[0]] = w[1];
+                if (history[w[0]] === w[2])
+                    history[w[0]] = w[1];
             }
             catch (e) { } });
-            // Remove all text marks we created
+            // Never unwrap marks belonging to a successor instance or the page.
             try {
-                var marks = document.querySelectorAll("mark[data-bh-anno-id]");
-                for (var mi = 0; mi < marks.length; mi++) {
-                    var m = marks[mi], mp = m.parentNode;
-                    if (!mp)
-                        continue;
-                    while (m.firstChild)
-                        mp.insertBefore(m.firstChild, m);
-                    mp.removeChild(m);
-                }
+                ownedTextMarks.forEach(unwrapTextMark);
             }
             catch (e) { }
             [st, hl, textHl, input, panel, toast, pinLayer].forEach(function (n) { if (n && n.parentNode)
@@ -1607,29 +1726,36 @@
         }
         catch (e) { }
         S.ready = false;
-        try {
-            delete window[NS];
-        }
-        catch (e) {
-            window[NS] = undefined;
+        if (window[NS] === S) {
+            try {
+                delete window[NS];
+            }
+            catch (e) {
+                window[NS] = undefined;
+            }
         }
         return "pi-web-annotator: removed";
     };
     function finishSetup(items) {
+        if (!live())
+            return;
         S.items = items;
         seq = S.items.reduce(function (maximum, item) { return Math.max(maximum, item.id || 0); }, 0);
         S.ready = true;
         if (document.body)
             mount();
         else
-            document.addEventListener("DOMContentLoaded", mount);
+            document.addEventListener("DOMContentLoaded", mount, { once: true });
     }
+    window.addEventListener(INSTANCE_EVENT, onInstanceChanged);
     Promise.all([
         itemStore.load(normalizeItem).catch(function () { return []; }),
         globalThis.browser.storage.local.get(PANEL_PLACEMENT_KEY).then(function (stored) {
             return normalizePanelPlacement(stored[PANEL_PLACEMENT_KEY]);
         }, function () { return null; })
     ]).then(function (loaded) {
+        if (!live())
+            return;
         panelPlacement = loaded[1];
         var saved = loaded[0];
         finishSetup(saved.filter(function (item) { return item !== undefined; }));

@@ -6,6 +6,8 @@
 - Refuse denied, revoked, unavailable or invalid permission results before serializing data or fetching; do not prompt or open consent tabs from these relays.
 - Keep health probes usable without data permission. Preserve granted requests, explicit consent UI, bridge commands, stored data and permission declarations.
 - Cover admission and revocation with synthetic fixtures. A permission check cannot retract requests already sent or authenticate other local HTTP clients.
+- Reserve selected rows before consent, skip overlapping claims without queued retries, and allow disjoint rows to progress. Fence late send/status responses to their current row, job and revision.
+- Retire destroyed or replaced overlays across setup, polling, consent, sends and delayed UI callbacks. Preserve explicit retry; requests and storage writes already admitted cannot be undone, and retrying can duplicate Pi work.
 
 ## 2.0.3
 

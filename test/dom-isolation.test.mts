@@ -72,6 +72,7 @@ for (const preGranted of [false, true]) {
     untrusted(await fixture.attack('send'), ['click']);
     if (!preGranted) {
       await fixture.attack('wait', {selector: '#bh-toast', text: 'Grant Pi access in the Firefox tab, then send again.'});
+      await fixture.waitForConsent();
       const refused = await fixture.snapshot();
       assert.equal(refused.allowed, false); assert.equal(refused.consent, 1);
       assert.deepEqual(refused.stored, fixture.baseline.stored);

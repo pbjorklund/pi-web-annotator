@@ -150,6 +150,15 @@ function backgroundScript(mailbox: string, target: string) {
   (async()=>{while(true){const c=fixtureRec(await(await fetch(fixtureMailbox)).json());let value,error;try{
     const tabs=await browser.tabs.query({}),tab=tabs.find(t=>t.url===fixtureTarget);if(!tab||!Number.isInteger(tab.id))throw Error('Missing owned target');
     if(c.op==='seed'){await browser.storage.local.set(c.values);value={seeded:await browser.storage.local.get(Object.keys(c.values))};await browser.scripting.executeScript({target:{tabId:tab.id},files:['annotation-storage.js','web-annotator.js']});}
+    else if(c.op==='wait-consent'){
+      const expected=browser.runtime.getURL('consent.html');
+      await new Promise((resolve,reject)=>{
+        const finish=()=>{browser.tabs.onUpdated.removeListener(updated);resolve();};
+        const updated=(id,change,current)=>{if(change.url===expected||current.url===expected)finish();};
+        browser.tabs.onUpdated.addListener(updated);
+        browser.tabs.query({}).then(current=>{if(current.some(t=>t.url===expected))finish();},error=>{browser.tabs.onUpdated.removeListener(updated);reject(error);});
+      });value={ready:true};
+    }
     else if(c.op==='snapshot'){
       const results=await browser.scripting.executeScript({target:{tabId:tab.id},func:()=>({native:typeof browser.runtime.sendMessage,storage:typeof PiWebAnnotatorStorage,state:typeof window.__piWebAnnotator,ready:window.__piWebAnnotator?.ready,installed:window.__piWebAnnotator?.installed,items:window.__piWebAnnotator?.items})});
       value={incognito:tab.incognito,content:results[0].result,stored:await browser.storage.local.get(c.key),allowed:await browser.permissions.contains({data_collection:['browsingActivity','websiteContent']}),consent:tabs.filter(t=>t.url===browser.runtime.getURL('consent.html')).length};
@@ -259,6 +268,7 @@ export async function isolationFixture(t: TestContext, preGranted = false) {
     return {browserVersion: context.browser()?.version(), snapshot, attack: (op: string, args?: Record<string, unknown>) => pageBox.command(op, args), jobs,
       async checkpoint() {const value: unknown = await (await fetch(bridge + '/checkpoint')).json(); return record(value).count;},
       baseline, installedId: expectedId, preGranted,
+      waitForConsent: () => nativeBox.command('wait-consent'),
     };
   } catch (error) {await close(); throw error;}
 }

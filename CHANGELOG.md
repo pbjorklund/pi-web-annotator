@@ -2,6 +2,8 @@
 
 ## 2.0.4
 
+- Publish the canonical behavior walkthrough and DOM-isolation assessment. Firefox extension storage is separate from website storage; notes rendered in page DOM remain visible and mutable to page scripts. No runtime DOM-isolation redesign is included.
+- Patch the existing development Undici overrides to 7.30.2 and 8.12.4, retaining consumer major versions, SDK pins and verified local security backports. Add offline integrity, redirect/cache/replay and actual SDK dispatcher regressions; no toolchain dependencies enter the Firefox or Pi runtime packages.
 - Recheck both optional Firefox data permissions before every background send and job-status relay, not only the regular send UI.
 - Refuse denied, revoked, unavailable or invalid permission results before serializing data or fetching; do not prompt or open consent tabs from these relays.
 - Keep health probes usable without data permission. Preserve granted requests, explicit consent UI, bridge commands, stored data and permission declarations.

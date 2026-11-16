@@ -1,10 +1,10 @@
 # Release-toolchain security fixes
 
-Version 2.0.3 repairs the development dependency graph used to test and publish the package. None of these libraries is bundled into the Pi npm package or Firefox ZIP. Run the full audit without filters; a clean audit alone does not certify a local backport.
+Version 2.0.3 repaired the development dependency graph used to test and publish the package; 2.0.4 adds the subsequent Undici security patches. None of these libraries is bundled into the Pi npm package or Firefox ZIP. Run the full audit without filters; a clean audit alone does not certify a local backport.
 
 ## Fixed registry dependencies
 
-- `undici` stays on its consumers' existing major versions: 7.30.1 and 8.12.3. These fix the EventSource, integrity, content-encoding, redirect-cache, TLS, and WebSocket advisories reported against 7.29.1 and 8.10.2.
+- `undici` stays on its consumers' existing major versions, now 7.30.2 and 8.12.4. These retain the earlier EventSource, integrity, content-encoding, redirect-cache, TLS and WebSocket fixes and address the subsequent ASCII-whitespace integrity, redirect credential, cache alias/revalidation and replay-error advisories. Offline regressions exercise the resolved public APIs and the actual modular SDK dispatcher with synthetic loopback traffic. Neither the npm overrides nor these tests repair Node-embedded fetch, prebundled SDK CLI code or installed hosts.
 - `fast-uri` moves from the existing 3.1.8 override to 3.1.9, fixing the URI normalization and scheme/host confusion advisories without a major-version change.
 - `minimatch` is overridden to 11.0.3. [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) has no fixed earlier major. The fix bounds preprocessing expansion and avoids quadratic deduplication of large pattern sets.
 - `multimatch` is overridden from 6.0.0 to 7.0.0 because the old consumer imports minimatch's removed default export. Version 7 uses the named API. The overrides retain the matching methods used by ESLint, its configuration helpers, typescript-eslint, and web-ext. Regression tests exercise their resolved copies, expansion limits, dotfiles, basename matching, and positive/negative multimatch filters. Full lint and Firefox package checks test the actual consumers.

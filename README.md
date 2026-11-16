@@ -135,7 +135,7 @@ Collections in website `localStorage` are not imported, changed, or deleted. Onl
 
 Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and panel placement use Firefox extension storage. Page scripts cannot directly access that storage, but they can inspect or alter notes rendered in the ordinary page DOM. The background checks Firefox data permission before relaying annotation content or stored job IDs to `127.0.0.1`; health probes carry no annotation text and remain permission-independent. Pi may then send that content to the model provider configured by the user.
 
-Annotations can contain full URLs, selected text, element `textContent` including hidden descendants, custom attributes and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
+Annotations can contain full URLs, selected text, element `textContent` including hidden descendants, custom attributes and your notes. Do not annotate secrets. The [native Firefox DOM assessment](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/DOM-ISOLATION.md) measures page-script reads, persisted changes and synthetic sends; it does not implement a mitigation. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
 
 ## Permissions
 

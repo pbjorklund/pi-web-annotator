@@ -154,7 +154,7 @@ The TUI widget shows `Annotator · listening/active · :port` only while running
 
 ## 8. Privacy and authority
 
-Extension storage is isolated from direct page-script access. **Rendered notes are not:** panel rows, editor controls and pin titles use ordinary page DOM that the visited page can inspect or alter. Attributes/text and full URLs may contain sensitive data even when not visibly displayed. Avoid secrets and untrusted sensitive pages. Storage isolation does not make this a confidential overlay or authenticated human-action boundary.
+Extension storage is isolated from direct page-script access. **Rendered notes are not:** panel rows, editor controls and pin titles use ordinary page DOM that the visited page can inspect or alter. Attributes/text and full URLs may contain sensitive data even when not visibly displayed. Avoid secrets and untrusted sensitive pages. Storage isolation does not make this a confidential overlay or authenticated human-action boundary. The [native Firefox assessment](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/DOM-ISOLATION.md) verifies page-script reads, persisted Edit/Save, status/deletion and synthetic row Send under explicit permission conditions. Its report and fixture change no runtime behavior; broader controls and mitigation acceptance remain separate.
 
 Clear/Delete do not retract clipboard copies, Pi messages, provider data or source edits. There is no developer-operated backend; Pi may use a remote provider and ordinary configured tools. Loopback describes only the Firefox-to-Pi hop. Starting the bridge and granting Firefox permission do not authorize unrelated credentials, file access, spending, deployments or services.
 

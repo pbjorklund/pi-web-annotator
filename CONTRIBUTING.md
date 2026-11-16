@@ -62,6 +62,18 @@ The locked TypeScript/ESLint/tsx toolchain and PI SDK 1.3.0 are repository-manag
 
 Use `npm run watch:typescript` to watch emission without starting a browser. Tests use isolated pages, loopback servers, and fixtures; they do not run the model-backed demo or touch an existing browser or Pi session.
 
+## Verify native DOM isolation
+
+`npm test` includes the [DOM isolation assessment](docs/DOM-ISOLATION.md) fixture. To run it alone:
+
+```bash
+node --import tsx --test test/dom-isolation.test.mts
+```
+
+It uses the locked Playwright Firefox build, a fresh regular profile and an owned UNIX debugging socket; Linux is the verified platform. Firefox temporarily installs a copied add-on and injects scripts through its native API. Hostile page scripts exercise shared DOM without trusted input. A separate owned fake bridge receives synthetic requests; port17373, existing profiles, live Pi and models are never used. The copied manifest/endpoint variations are documented in the assessment.
+
+These tests characterize existing exposure. A later mitigation must replace affected expectations with reviewed native protection checks, not quietly skip failing characterization cases.
+
 ## Make a change
 
 Read and update the canonical [behavior walkthrough](docs/extension-walkthrough.md) with affected behavior; retain detailed procedures in their owning documents.

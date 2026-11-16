@@ -2,7 +2,7 @@
 
 Web Annotator for Pi collects change requests against webpage elements or selected text. Firefox can store and export a review without Pi. The optional loopback bridge delivers Markdown into the current Pi session; it does not itself locate source, edit files or verify a fix.
 
-Reviewed candidate behavior: package **2.0.4**, implementation revision [`a40397ee7f01a2208bf2dd931ec509cca0ad9124`](https://github.com/pbjorklund/pi-web-annotator/tree/a40397ee7f01a2208bf2dd931ec509cca0ad9124). It combines fresh background data-permission checks, per-row send ownership, terminal overlay lifetimes and revisioned cross-tab storage. This source overview does not establish publication, installed-browser permission behavior or a running host's version. [README](../README.md) owns setup; [PRIVACY](../PRIVACY.md) owns the privacy policy. Specialist procedures remain linked below.
+Reviewed implementation revision [`a40397ee7f01a2208bf2dd931ec509cca0ad9124`](https://github.com/pbjorklund/pi-web-annotator/tree/a40397ee7f01a2208bf2dd931ec509cca0ad9124). It combines fresh background data-permission checks, per-row send ownership, terminal overlay lifetimes and revisioned cross-tab storage. This source overview does not establish publication, installed-browser permission behavior or a running host's version. [README](../README.md) owns setup; [PRIVACY](../PRIVACY.md) owns the privacy policy. Specialist procedures remain linked below.
 
 ## 1. Hosts and controls
 

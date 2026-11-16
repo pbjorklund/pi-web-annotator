@@ -38,7 +38,6 @@ node --import tsx --test test/dependency-security.test.mts
 npm run package
 npm audit
 npm audit signatures
-npm run release:validate -- v2.0.3
 npm pack --dry-run
 ```
 

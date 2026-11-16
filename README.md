@@ -8,7 +8,7 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 Use it when visual webpage review needs exact element or selected-text context. Do not use it for automated accessibility audits, remote team review, Firefox for Android, or pages whose secrets must not enter browser storage or an agent transcript. The Firefox extension works without PI; install the bridge only when direct local delivery is useful.
 
-This README describes the 2.0.4 source candidate, not necessarily the version installed from Firefox Add-ons.
+This README describes repository source, not necessarily the version installed from Firefox Add-ons.
 
 Read the [behavior walkthrough](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/extension-walkthrough.md) for the full capture, storage, export, bridge lifecycle and privacy contract.
 

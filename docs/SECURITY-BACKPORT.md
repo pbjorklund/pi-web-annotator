@@ -33,7 +33,6 @@ node --import tsx --test test/node-forge-security.test.mts
 npm run package
 npm audit
 npm audit signatures
-npm run release:validate -- v2.0.2
 ```
 
 `npm test` includes the integrity check and security regression tests. The checker also verifies the actual Forge package resolved from web-ext through adbkit, so an unused patched copy cannot satisfy the gate. A tamper test removes the parser check while retaining the custom version and confirms that verification fails.

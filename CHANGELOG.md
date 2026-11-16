@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.5
+
+- Remove obsolete version-specific release-validation commands from security runbooks; retain the current release procedure and every backport verification step.
+- Remove stale source-candidate wording while preserving browser/store version and review-evidence limits. Refresh reusable AMO release copy for this documentation-only release.
+- Browser behavior, storage, permissions, bridge runtime and dependencies are unchanged.
+
 ## 2.0.4
 
 - Publish the canonical behavior walkthrough and DOM-isolation assessment. Firefox extension storage is separate from website storage; notes rendered in page DOM remain visible and mutable to page scripts. No runtime DOM-isolation redesign is included.

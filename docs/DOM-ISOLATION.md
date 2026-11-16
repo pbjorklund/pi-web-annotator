@@ -51,7 +51,7 @@ node --import tsx --test test/dom-isolation.test.mts
 Fixture-only differences from the copied product:
 
 - Append `fixture.js` to the copied manifest's background scripts. Its unguessable mailbox lets the trusted test controller seed/read native storage and inject scripts; the hostile page receives a separate mailbox.
-- Redirect exactly one background bridge endpoint to an owned ephemeral fake server on a different origin from the target. Port17373 is never used. The fake server records requests and returns JSON; no Pi/provider runs.
+- Redirect exactly one background bridge endpoint to an owned ephemeral fake server on a different origin from the target. `127.0.0.1:17373` is never used. The fake server records requests and returns JSON; no Pi/provider runs.
 - In the granted variant only, replace `required: ["none"]` and the optional list with required `browsingActivity`/`websiteContent`. Native `permissions.contains` must return true. This establishes the pre-granted condition, not optional-permission consent UX.
 
 Other copied product artifacts are compared byte-for-byte. Native browser APIs are not replaced with page mocks. Characterization starts green because the exposed behavior is the measured subject. A harmless panel-title copy change passed; replacing rendered notes with a wrong marker failed the note-read assertion. Both temporary mutations were restored.
@@ -87,7 +87,7 @@ Later implementation acceptance: native Firefox cases reject page-triggered send
 - [UI, handlers and exports](https://github.com/pbjorklund/pi-web-annotator/blob/86efd63ac30abae8bd745572ec5354b30c31aa06/src/browser/web-annotator.ts): `render`, `commit`, `onKey`, `sendItemsToPi`, `copyText`.
 - [Origin validation and relay admission](https://github.com/pbjorklund/pi-web-annotator/blob/86efd63ac30abae8bd745572ec5354b30c31aa06/src/browser/background.ts); [consent](https://github.com/pbjorklund/pi-web-annotator/blob/86efd63ac30abae8bd745572ec5354b30c31aa06/src/browser/consent.ts).
 - [MDN: content-script DOM access/Xrays](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts#dom_access), reviewed 16 November 2026: shared DOM changes, isolated globals and clean built-ins.
-- [MDN: Shadow DOM mode](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#elementshadowroot_and_the_mode_option), reviewed 16 November 2026: closed mode is not a strong security mechanism. This does not establish a particular plain-page bypass of Firefox extension-created roots.
+- [MDN: Shadow DOM mode](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#element.shadowroot_and_the_mode_option), reviewed 16 November 2026: closed mode is not a strong security mechanism. This does not establish a particular plain-page bypass of Firefox extension-created roots.
 
 ## Bias review
 

@@ -70,7 +70,7 @@ Use `npm run watch:typescript` to watch emission without starting a browser. Tes
 node --import tsx --test test/dom-isolation.test.mts
 ```
 
-It uses the locked Playwright Firefox build, a fresh regular profile and an owned UNIX debugging socket; Linux is the verified platform. Firefox temporarily installs a copied add-on and injects scripts through its native API. Hostile page scripts exercise shared DOM without trusted input. A separate owned fake bridge receives synthetic requests; port17373, existing profiles, live Pi and models are never used. The copied manifest/endpoint variations are documented in the assessment.
+It uses the locked Playwright Firefox build, a fresh regular profile and an owned UNIX debugging socket; Linux is the verified platform. Firefox temporarily installs a copied add-on and injects scripts through its native API. Hostile page scripts exercise shared DOM without trusted input. A separate owned fake bridge receives synthetic requests; `127.0.0.1:17373`, existing profiles, live Pi and models are never used. The copied manifest/endpoint variations are documented in the assessment.
 
 These tests characterize existing exposure. A later mitigation must replace affected expectations with reviewed native protection checks, not quietly skip failing characterization cases.
 

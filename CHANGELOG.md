@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.4
+
+- Recheck both optional Firefox data permissions before every background send and job-status relay, not only the regular send UI.
+- Refuse denied, revoked, unavailable or invalid permission results before serializing data or fetching; do not prompt or open consent tabs from these relays.
+- Keep health probes usable without data permission. Preserve granted requests, explicit consent UI, bridge commands, stored data and permission declarations.
+- Cover admission and revocation with synthetic fixtures. A permission check cannot retract requests already sent or authenticate other local HTTP clients.
+
 ## 2.0.3
 
 - Include versioned release notes in Git and npm packages for Pi 1.5 update notices.

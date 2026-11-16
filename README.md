@@ -78,7 +78,7 @@ The TUI's `Annotator` bar shows listening or active while the bridge runs and st
 
 The bridge listens on `127.0.0.1:17373` and stops with the Pi session. Its constant request header is not user authentication; local software can send it too. Stopping the listener does not cancel Pi work already delivered.
 
-The first send opens a bundled consent page. Choose **Allow sending to local Pi**, approve Firefox's optional data permission, return to the annotated page, and send again. This regular send flow checks permission before submitting annotation content. Health probes and stored job-ID status requests run separately; the bridge itself does not verify Firefox permission.
+The first send opens a bundled consent page. Choose **Allow sending to local Pi**, approve Firefox's optional data permission, return to the annotated page, and send again. The background rechecks both optional data permissions before every annotation send and stored job-ID status request, even when the caller bypasses the regular send UI. Missing, revoked, unavailable or invalid permission results refuse the relay without opening another consent page. Health probes remain usable without data permission. This per-request check cannot retract a request already sent; the HTTP bridge itself does not verify Firefox permission or authenticate other local clients.
 
 | Browser state | Meaning |
 | --- | --- |
@@ -120,7 +120,7 @@ pi -e ./pi-extension/index.ts
 
 Collections in website `localStorage` are not imported, changed, or deleted. Only collections saved in Firefox extension storage are loaded.
 
-Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and panel placement use Firefox extension storage. Page scripts cannot directly access that storage, but they can inspect or alter notes rendered in the ordinary page DOM. The optional Pi send flow checks Firefox permission before sending selected annotation content to `127.0.0.1`. Pi may then send that content to the model provider configured by the user.
+Web Annotator for Pi has no developer-operated backend and does not include analytics or advertising. Saved annotations and panel placement use Firefox extension storage. Page scripts cannot directly access that storage, but they can inspect or alter notes rendered in the ordinary page DOM. The background checks Firefox data permission before relaying annotation content or stored job IDs to `127.0.0.1`; health probes carry no annotation text and remain permission-independent. Pi may then send that content to the model provider configured by the user.
 
 Annotations can contain full URLs, selected text, element `textContent` including hidden descendants, custom attributes and your notes. Do not annotate secrets. Read [PRIVACY.md](https://github.com/pbjorklund/pi-web-annotator/blob/main/PRIVACY.md) for storage details, permission rationale, deletion behavior, and the Pi boundary.
 

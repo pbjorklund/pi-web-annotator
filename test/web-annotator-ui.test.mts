@@ -274,7 +274,7 @@ test('keeps multi-digit pins readable and stacks comments on the same component'
     }));
     globalThis.browser = { ...createBrowserFixture(),
       storage: { local: {
-        async get(key) { return key.includes(':collection:') ? { [key]: [null, ...items, {id: 'invalid'}] } : {}; },
+        async get(key) { return key.includes(':collection:v1:') ? { [key]: items } : {}; },
         async set() {},
       } },
       runtime: { ...createBrowserFixture().runtime, async sendMessage() { return { ok: false }; } },
@@ -419,7 +419,11 @@ test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t
   await page.evaluate(() => { globalThis.__requireFixtureValue(globalThis.__piWebAnnotator).items[0].piStatus = 'sent'; });
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   assert.equal(await page.evaluate(() => globalThis.__requireFixtureValue(globalThis.__piWebAnnotator).items[0].note), 'Use the final approved release copy.');
-  assert.ok(await page.getByText('This annotation changed state and can no longer be edited.').isVisible());
+  assert.match(await page.getByRole('alert', {name: 'Annotation storage'}).innerText(), /Not saved.*changed in another tab/);
+  assert.equal(await page.getByLabel('Annotation note').inputValue(), 'This stale edit must not be saved.');
+  await page.getByRole('button', {name: 'Cancel', exact: true}).click();
+  await page.getByRole('button', {name: 'Reload saved annotations'}).click();
+  await page.getByRole('alert', {name: 'Annotation storage'}).waitFor({state: 'hidden'});
 
   for (const status of ['sent', 'in_progress', 'completed'] as const) {
     await page.evaluate((nextStatus) => {
@@ -437,6 +441,7 @@ test('edits and persists a saved annotation note', { timeout: 30_000 }, async (t
   });
   await page.getByRole('button', { name: 'Send annotation 1 to Pi' }).click();
   await page.waitForFunction(() => globalThis.__requireFixtureValue(globalThis.__piWebAnnotator).items[0].piStatus === 'sending');
+  await page.waitForFunction(() => typeof globalThis.__lastAnnotationPrompt === 'string' && typeof globalThis.__finishAnnotationSend === 'function');
   assert.match(required(await page.evaluate(() => globalThis.__lastAnnotationPrompt)), /Use the final approved release copy\./);
   assert.equal(await page.getByRole('button', { name: 'Edit annotation 1' }).isDisabled(), true, 'an annotation being sent must not be editable');
   await page.evaluate(() => globalThis.__requireFixtureValue(globalThis.__finishAnnotationSend)());

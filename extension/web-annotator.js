@@ -85,13 +85,200 @@
     var itemStore = globalThis.PiWebAnnotatorStorage.createAnnotationStorage({
         extensionStorage: globalThis.browser.storage.local,
         origin: location.origin,
+        runtime: globalThis.browser.runtime,
+        changes: globalThis.browser.storage.onChanged,
     });
-    var seq = 0;
+    var pendingMarkSequence = 0;
     var PANEL_PLACEMENT_KEY = "pi-web-annotator:panel-placement:v1";
     var PANEL_MARGIN = 8;
     var panelPlacement = null;
-    function save() { if (live())
-        itemStore.save(S.items).catch(function () { }); }
+    var collectionRevision = -1, collectionReady = false, storageBusy = 0, storageNeedsReload = false, storageMessageText = "";
+    var rowVersions = new WeakMap(), confirmedCollection;
+    var pendingCollection, stopStorage;
+    var storageTail = Promise.resolve(), editingRevision = 0;
+    function canChange() { return live() && !!stopStorage && collectionReady && !storageBusy && !storageNeedsReload; }
+    function storageProblem(message) {
+        if (!live())
+            return;
+        storageNeedsReload = true;
+        storageMessageText = message;
+        render();
+    }
+    function receiveCollection(collection) {
+        if (!live())
+            return;
+        if (!collectionReady || storageBusy) {
+            if (!pendingCollection || collection.revision >= pendingCollection.revision)
+                pendingCollection = collection;
+            return;
+        }
+        try {
+            applyCollection(collection);
+        }
+        catch {
+            storageProblem("Saved annotations are invalid. Reload before editing.");
+        }
+    }
+    function sameData(left, right) {
+        if (left === right)
+            return true;
+        if (!object(left) || !object(right))
+            return false;
+        const first = left, second = right;
+        var keys = Object.keys(first).filter(function (key) { return first[key] !== undefined; });
+        var other = Object.keys(second).filter(function (key) { return second[key] !== undefined; });
+        return keys.length === other.length && keys.every(function (key) { return Object.hasOwn(second, key) && sameData(first[key], second[key]); });
+    }
+    function applyCollection(collection, force = false, ownUpdates = []) {
+        if (!live() || (!force && collection.revision <= collectionRevision))
+            return;
+        var ids = new Set();
+        var decoded = collection.rows.map(function (row) {
+            var item = normalizeItem(row.annotation);
+            if (!item || !Number.isSafeInteger(item.id) || item.id < 1 || item.id >= collection.nextId || ids.has(item.id))
+                throw new Error("Invalid saved annotation");
+            ids.add(item.id);
+            return { item: item, revision: row.revision };
+        });
+        var next = decoded.map(function (row) {
+            var item = S.items.find(function (existing) { return existing.id === row.item.id; });
+            if (!item)
+                item = row.item;
+            else {
+                var same = sameData(item, row.item);
+                if (!same || (rowVersions.get(item) !== row.revision && ownUpdates.indexOf(item.id) < 0))
+                    invalidateItem(item);
+                if (!same) {
+                    const existing = item;
+                    Object.keys(existing).forEach(function (key) { Reflect.deleteProperty(existing, key); });
+                    Object.assign(existing, row.item);
+                }
+            }
+            rowVersions.set(item, row.revision);
+            return item;
+        });
+        S.items.forEach(function (item) { if (next.indexOf(item) < 0) {
+            invalidateItem(item);
+            removeTextMark(item.id);
+        } });
+        S.items = next;
+        collectionRevision = collection.revision;
+        confirmedCollection = structuredClone(collection);
+        render();
+    }
+    function applyPendingCollection() {
+        var pending = pendingCollection;
+        pendingCollection = undefined;
+        if (pending && collectionReady && !storageBusy)
+            receiveCollection(pending);
+    }
+    function mutateCollection(operation, matchingMirror = false) {
+        if (!live() || !collectionReady || storageNeedsReload)
+            return Promise.resolve(undefined);
+        storageBusy++;
+        render();
+        var work = (async function () {
+            try {
+                var reply = await itemStore.mutate(operation);
+                if (!live())
+                    return;
+                // A different tab may already have persisted this exact Pi-state mirror.
+                if (!reply.ok && matchingMirror && reply.reason === "conflict" && reply.collection && operation.kind === "updateMany") {
+                    const current = reply.collection, updates = operation.updates;
+                    if (updates.length && updates.every(function (update) { return current.rows.some(function (row) { return object(row.annotation) && row.annotation.id === update.id && sameData(row.annotation, update.annotation); }); }))
+                        reply = { ok: true, collection: current };
+                }
+                if (reply.ok) {
+                    var ownUpdates = operation.kind === "updateMany" ? operation.updates.map(function (update) { return update.id; }) : operation.kind === "update" ? [operation.id] : [];
+                    applyCollection(reply.collection, false, ownUpdates);
+                }
+                else {
+                    if (reply.collection)
+                        applyCollection(reply.collection, true);
+                    else if (confirmedCollection)
+                        applyCollection(confirmedCollection, true);
+                    var prefix = reply.reason === "storage" ? "Save result unconfirmed. " : "Not saved. ";
+                    storageProblem(prefix + reply.error + (pending || editingItem ? " Draft text remains in the editor." : "") + " Reload saved annotations before retrying.");
+                }
+                return reply;
+            }
+            catch {
+                if (live()) {
+                    if (confirmedCollection)
+                        applyCollection(confirmedCollection, true);
+                    storageProblem("Save result unconfirmed." + (pending || editingItem ? " Draft text remains in the editor." : "") + " Reload saved annotations and check before retrying.");
+                }
+            }
+            finally {
+                storageBusy--;
+                if (live()) {
+                    applyPendingCollection();
+                    render();
+                }
+            }
+        })();
+        storageTail = work.then(function () { }, function () { });
+        return work;
+    }
+    async function waitForStorage() {
+        while (live() && storageBusy)
+            await storageTail;
+        return canChange();
+    }
+    async function save(items = S.items) {
+        var updates = [];
+        for (var item of items) {
+            var revision = rowVersions.get(item);
+            if (revision === undefined) {
+                storageProblem("Not saved. This annotation has no confirmed storage revision. Reload saved annotations.");
+                return false;
+            }
+            updates.push({ id: item.id, revision: revision, annotation: structuredClone(item) });
+        }
+        if (!updates.length)
+            return true;
+        var reply = await mutateCollection({ kind: "updateMany", updates: updates }, true);
+        return !!reply?.ok;
+    }
+    async function reloadCollection() {
+        if (!live() || storageBusy)
+            return;
+        storageBusy++;
+        render();
+        try {
+            if (!stopStorage)
+                stopStorage = itemStore.subscribe(receiveCollection, function (error) { storageProblem(error.message); });
+            var collection = await itemStore.load();
+            if (!live())
+                return;
+            applyCollection(collection, true);
+            collectionReady = true;
+            storageNeedsReload = false;
+            if (editingItem) {
+                var revision = rowVersions.get(editingItem);
+                if (!present(editingItem) || revision === undefined) {
+                    storageNeedsReload = true;
+                    storageMessageText = "This annotation was deleted. Your draft is kept; copy it or cancel.";
+                }
+                else {
+                    editingRevision = revision;
+                    storageMessageText = "Saved notes reloaded. Review your retained draft before saving.";
+                }
+            }
+            else
+                storageMessageText = pending ? "Saved notes reloaded. Check whether your draft was already saved before saving again." : "";
+        }
+        catch (error) {
+            storageProblem("Annotations could not be loaded. " + (error instanceof Error ? error.message : "Retry Reload saved before editing."));
+        }
+        finally {
+            storageBusy--;
+            if (live()) {
+                applyPendingCollection();
+                render();
+            }
+        }
+    }
     function normalizePanelPlacement(value) {
         if (!object(value) || !finite(Number(value.x)) || !finite(Number(value.y)))
             return null;
@@ -175,7 +362,7 @@
             // Text-annotation pins get an amber tint
             ".bh-pin.bh-pin-text{background:#f59e0b}" +
             ".bh-pin.bh-pin-text:hover{background:#fbbf24}" +
-            "#bh-input{position:fixed;z-index:" + (Z + 3) + ";width:320px;background:" + BG + ";color:" + TXT + ";border:1px solid " + BORD + ";border-radius:16px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.55),0 0 0 1px " + BORD_S + ";display:none;animation:bh-pop .16s ease both}" +
+            "#bh-input{position:fixed;z-index:" + (Z + 3) + ";width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;background:" + BG + ";color:" + TXT + ";border:1px solid " + BORD + ";border-radius:16px;padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.55),0 0 0 1px " + BORD_S + ";display:none;animation:bh-pop .16s ease both}" +
             "#bh-input textarea{width:100%;height:76px;resize:vertical;background:" + SURF + ";color:" + TXT + ";border:1px solid transparent;border-radius:12px;padding:10px 12px;font:14px/1.45 " + FONT + ";outline:none;transition:border-color .15s ease,background .15s ease}" +
             "#bh-input textarea:focus{border-color:" + ACCENT + ";background:#262626}" +
             "#bh-input textarea::placeholder{color:" + MUT + "}" +
@@ -314,7 +501,18 @@
     fRight.textContent = "⌥A pause";
     foot.appendChild(fLeft);
     foot.appendChild(fRight);
+    var storageBanner = el("div", { "data-bh-ui": "1", role: "alert", "aria-label": "Annotation storage" });
+    var storageMessage = document.createElement("span"), bReload = document.createElement("button");
+    bReload.type = "button";
+    bReload.className = "bh-btn s";
+    bReload.textContent = "Reload saved";
+    bReload.setAttribute("aria-label", "Reload saved annotations");
+    bReload.onclick = reloadCollection;
+    storageBanner.style.cssText = "display:none;padding:8px 12px;white-space:normal;";
+    storageBanner.appendChild(storageMessage);
+    storageBanner.appendChild(bReload);
     panel.appendChild(ph);
+    panel.appendChild(storageBanner);
     panel.appendChild(list);
     panel.appendChild(foot);
     function applyPanelPlacement() {
@@ -821,7 +1019,7 @@
     // Track a pending text mark in case the user cancels, so we can unwind it.
     var _pendingMarkId = null;
     function onClick(e) {
-        if (!live() || !S.mode || S.targetMode !== "element" || isUI(e.target))
+        if (!canChange() || !S.mode || S.targetMode !== "element" || isUI(e.target))
             return;
         // Drop an open editor before switching to a new element capture.
         cancelPending();
@@ -855,7 +1053,7 @@
         return { text: text.slice(0, half) + " … " + text.slice(-half), truncated: true };
     }
     function onTextSelect() {
-        if (!live() || !S.mode || S.targetMode !== "text")
+        if (!canChange() || !S.mode || S.targetMode !== "text")
             return;
         // Delay: let the selection settle (double-click, triple-click expand in steps)
         clearTimeout(_selTimer);
@@ -908,13 +1106,11 @@
         }
         // Clean up any previous capture or edit before creating a new one.
         cancelPending();
-        // Pre-assign ID so we can create the mark immediately
-        var annoId = ++seq;
+        // Unconfirmed marks cannot collide with positive broker-assigned row IDs.
+        var annoId = --pendingMarkSequence;
         var mark = wrapSelection(range.cloneRange(), annoId);
-        if (!mark) {
-            seq--;
+        if (!mark)
             return;
-        } // wrap failed - abort
         _pendingMarkId = annoId;
         var rects = range.getClientRects();
         var rect = rects.length ? rects[0] : range.getBoundingClientRect();
@@ -943,22 +1139,21 @@
         }, 0);
     }
     function beginEdit(a, e) {
-        if (!present(a) || a.piStatus !== "pending" || sendOwners.has(a))
+        if (!canChange() || !present(a) || a.piStatus !== "pending" || sendOwners.has(a))
             return;
         cancelPending();
         if (!(e.currentTarget instanceof Element))
             return;
         var r = e.currentTarget.getBoundingClientRect();
         editingItem = a;
+        editingRevision = rowVersions.get(a) || 0;
         render();
         var anchorX = e.clientX || r.left, anchorY = e.clientY || r.bottom;
         openEditor(a, a.note || "", "Edit annotation", "Edit annotation note…", anchorX, anchorY);
         bSaveSend.disabled = true;
     }
-    function commit() {
-        if (!live())
-            return;
-        if (!pending && !editingItem)
+    async function commit() {
+        if (!canChange() || (!pending && !editingItem))
             return;
         var note = inTa.value.trim();
         if (!note) {
@@ -966,41 +1161,46 @@
             return;
         }
         if (editingItem) {
-            if (!present(editingItem) || editingItem.piStatus !== "pending" || sendOwners.has(editingItem)) {
-                showToast("This annotation changed state and can no longer be edited.");
-                cancelPending();
-                pTitle.focus();
+            var edited = editingItem;
+            if (!present(edited) || edited.piStatus !== "pending" || sendOwners.has(edited) || rowVersions.get(edited) !== editingRevision) {
+                storageProblem("Not saved. This annotation changed in another tab. Your draft is kept; reload saved annotations to review it.");
                 return;
             }
-            var edited = editingItem;
-            invalidateItem(edited);
-            edited.note = note;
+            var reply = await mutateCollection({ kind: "update", id: edited.id, revision: editingRevision, annotation: { ...edited, note: note } });
+            if (!live() || !reply?.ok)
+                return;
             editingItem = null;
             input.style.display = "none";
-            save();
+            storageMessageText = "";
             render();
             focusEditButton(edited.id);
             return edited;
         }
         if (!pending)
             return;
-        var item = { ...pending, id: pending.type === "text" && pending.id !== undefined ? pending.id : ++seq, note: note, ts: Date.now(), piStatus: "pending" };
-        S.items.push(item);
+        var draft = pending, markId = _pendingMarkId;
+        var created = await mutateCollection({ kind: "create", annotation: { ...draft, note: note, ts: Date.now(), piStatus: "pending" } });
+        if (!live() || !created?.ok || created.createdId === undefined)
+            return;
+        const createdId = created.createdId;
+        var item = S.items.find(function (a) { return a.id === createdId; });
+        if (markId !== null)
+            ownedTextMarks.forEach(function (mark) { if (mark.getAttribute("data-bh-anno-id") === String(markId))
+                mark.setAttribute("data-bh-anno-id", String(createdId)); });
         _pendingMarkId = null;
         pending = null;
         input.style.display = "none";
-        save();
+        storageMessageText = "";
         render();
         return item;
     }
     function cancelPending(restoreEditFocus = false) {
-        if (!live())
+        if (!live() || storageBusy)
             return;
         // Clean up pending state (text mark, element capture, or edit) without touching mode.
         var editId = editingItem && editingItem.id;
         if (_pendingMarkId) {
             removeTextMark(_pendingMarkId);
-            seq--;
             _pendingMarkId = null;
         }
         pending = null;
@@ -1041,7 +1241,7 @@
         piDot.classList.toggle("connected", connected);
         piDot.setAttribute("aria-label", connected ? "Pi connected" : "Pi disconnected");
         piDot.title = connected ? "Pi connected" : "Pi disconnected";
-        bSend.disabled = !connected || pendingPiItems().length === 0 || !!editingItem;
+        bSend.disabled = !canChange() || !connected || pendingPiItems().length === 0 || !!editingItem;
         if (connectionChanged)
             render();
     }
@@ -1075,7 +1275,7 @@
         }
     }
     async function refreshPiState() {
-        if (!live() || _piPollBusy)
+        if (!canChange() || _piPollBusy)
             return;
         _piPollBusy = true;
         try {
@@ -1099,9 +1299,9 @@
             if (!jobIds.length)
                 return;
             var response = await sendPiBridge({ type: "pi-web-annotator-status", jobIds: jobIds });
-            if (!live() || !response.ok || !response.jobs)
+            if (!response.ok || !response.jobs || !await waitForStorage())
                 return;
-            var changed = false, completedIds = [];
+            var changed = false, completedIds = [], changedItems = [];
             snapshots.forEach(function (snapshot) {
                 var a = snapshot.item;
                 if (!present(a) || a.piJobId !== snapshot.jobId || a.piStatus !== snapshot.state
@@ -1114,6 +1314,7 @@
                     a.piStatus = next;
                     delete a.piSendingAt;
                     invalidateItem(a);
+                    changedItems.push(a);
                     changed = true;
                 }
                 else if (!next && (a.piStatus === "sent" || a.piStatus === "in_progress"
@@ -1122,13 +1323,12 @@
                     delete a.piJobId;
                     delete a.piSendingAt;
                     invalidateItem(a);
+                    changedItems.push(a);
                     changed = true;
                 }
             });
-            if (changed) {
-                save();
-                render();
-            }
+            if (changed && (!await save(changedItems) || !live()))
+                return;
             if (completedIds.length === 1)
                 showToast("Pi finished annotation #" + completedIds[0]);
             else if (completedIds.length > 1)
@@ -1167,7 +1367,7 @@
         }
     }
     async function sendItemsToPi(items) {
-        if (!live() || !piConnected || editingItem)
+        if (!canChange() || !piConnected || editingItem)
             return;
         var owner = {};
         var claimed = items.filter(function (a) {
@@ -1182,7 +1382,7 @@
         render();
         try {
             var granted = await ensurePiDataConsent();
-            if (!live())
+            if (!await waitForStorage())
                 return;
             items = claimed.filter(function (a) { return ownsSend(a, owner, "pending"); });
             if (!items.length || editingItem)
@@ -1192,13 +1392,18 @@
                 return;
             }
             var jobId = newPiJobId(), sendingAt = Date.now();
+            items.forEach(function (a) { a.piJobId = jobId; a.piSendingAt = sendingAt; a.piStatus = "sending"; });
+            if (!await save(items) || !live())
+                return;
+            items = items.filter(function (a) { return ownsSend(a, owner, "sending") && a.piJobId === jobId; });
+            if (!items.length)
+                return;
             var job = { id: jobId, prompt: PROMPT_PRE + "\n\n" + toMarkdown(items),
                 annotationIds: items.map(function (a) { return String(a.id); }) };
-            items.forEach(function (a) { a.piJobId = jobId; a.piSendingAt = sendingAt; a.piStatus = "sending"; });
-            save();
-            render();
             var response = await sendPiBridge({ type: "pi-web-annotator-send", job: job });
             if (!live())
+                return;
+            if (!await waitForStorage())
                 return;
             var owned = items.filter(function (a) { return ownsSend(a, owner, "sending") && a.piJobId === jobId; });
             if (!owned.length)
@@ -1210,7 +1415,8 @@
                     delete a.piJobId;
                 invalidateItem(a);
             });
-            save();
+            if (!await save(owned) || !live())
+                return;
             updatePiConnection(!!response.ok);
             render();
             if (!response.ok) {
@@ -1236,8 +1442,8 @@
     }
     function sendPendingToPi() { return sendItemsToPi(pendingPiItems()); }
     function sendItemToPi(a) { return sendItemsToPi([a]); }
-    function commitAndSend() {
-        var item = commit();
+    async function commitAndSend() {
+        var item = await commit();
         if (item)
             return sendItemToPi(item);
     }
@@ -1255,9 +1461,25 @@
         bMode.textContent = S.mode ? "Pause" : "Resume";
         bTarget.textContent = S.targetMode === "element" ? "Element" : "Text";
         bCopy.disabled = !!editingItem;
-        bClear.disabled = !!editingItem;
-        bSend.disabled = !piConnected || pendingPiItems().length === 0 || !!editingItem;
-        bSaveSend.disabled = !piConnected || !!editingItem;
+        bClear.disabled = !!editingItem || !canChange();
+        bSave.disabled = !canChange();
+        bCancel.disabled = !!storageBusy;
+        inTa.disabled = !!storageBusy;
+        var showStorage = !!storageBusy || !!storageMessageText, insideEditor = showStorage && input.style.display === "block";
+        if (insideEditor && storageBanner.parentNode !== input)
+            input.appendChild(storageBanner);
+        else if (!insideEditor && storageBanner.parentNode !== panel)
+            panel.insertBefore(storageBanner, list);
+        storageBanner.style.display = showStorage ? "block" : "none";
+        storageMessage.textContent = storageBusy ? "Saving annotations…" : storageMessageText;
+        bReload.hidden = !!storageBusy || !storageNeedsReload;
+        bReload.disabled = !!storageBusy;
+        if (insideEditor) {
+            var bounds = input.getBoundingClientRect();
+            showInputAt(bounds.left, bounds.top);
+        }
+        bSend.disabled = !canChange() || !piConnected || pendingPiItems().length === 0 || !!editingItem;
+        bSaveSend.disabled = !canChange() || !piConnected || !!editingItem;
         bSaveSend.title = editingItem ? "Save the edit, then send it from the annotation row" : (piConnected ? "Save this annotation and send it to Pi" : "Start the Pi annotation server to save and send");
         // Update footer hint
         fRight.textContent = S.mode
@@ -1274,22 +1496,22 @@
             list.appendChild(em);
         }
         S.items.forEach(function (a) {
+            var renderedRevision = rowVersions.get(a);
             var it = el("div", { class: "it" });
             var state;
             if (a.piStatus === "pending" || a.piStatus === "completed") {
                 var check = el("input", { class: "state-check", title: piStatusLabel(a.piStatus), "aria-label": "Annotation " + a.id + ": " + piStatusLabel(a.piStatus) });
                 check.type = "checkbox";
                 check.checked = a.piStatus === "completed";
-                check.disabled = !!editingItem;
-                check.onchange = function (e) {
+                check.disabled = !!editingItem || !canChange();
+                check.onchange = async function (e) {
                     e.stopPropagation();
-                    if (!present(a))
+                    if (!canChange() || !present(a) || renderedRevision === undefined)
                         return;
-                    invalidateItem(a);
-                    a.piStatus = check.checked ? "completed" : "pending";
-                    delete a.piJobId;
-                    save();
-                    render();
+                    var annotation = { ...a, piStatus: check.checked ? "completed" : "pending" };
+                    delete annotation.piJobId;
+                    delete annotation.piSendingAt;
+                    await mutateCollection({ kind: "update", id: a.id, revision: renderedRevision, annotation: annotation });
                 };
                 state = check;
             }
@@ -1326,13 +1548,13 @@
             }
             var send = el("button", { class: "act send", title: "Send this annotation to Pi", "aria-label": "Send annotation " + a.id + " to Pi" });
             send.type = "button";
-            send.disabled = !piConnected || a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
+            send.disabled = !canChange() || !piConnected || a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
             send.appendChild(icon("send"));
             send.onclick = function (e) { e.preventDefault(); e.stopPropagation(); sendItemToPi(a); };
             var edit = el("button", { class: "act e", title: "Edit this pending annotation", "aria-label": "Edit annotation " + a.id, "data-bh-edit-id": a.id });
             edit.type = "button";
             edit.textContent = "✎";
-            edit.disabled = a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
+            edit.disabled = !canChange() || a.piStatus !== "pending" || !!editingItem || sendOwners.has(a);
             edit.onclick = function (e) { e.preventDefault(); e.stopPropagation(); beginEdit(a, e); };
             var c = el("button", { class: "act c", title: "Copy this annotation", "aria-label": "Copy annotation " + a.id });
             c.type = "button";
@@ -1342,9 +1564,9 @@
             var x = el("button", { class: "act x", title: "Delete this annotation", "aria-label": "Delete annotation " + a.id });
             x.type = "button";
             x.textContent = "✕";
-            x.disabled = !!editingItem;
-            x.onclick = function (e) { e.preventDefault(); e.stopPropagation(); if (!present(a))
-                return; removeTextMark(a.id); S.items = S.items.filter(function (q) { return q.id !== a.id; }); save(); render(); };
+            x.disabled = !!editingItem || !canChange();
+            x.onclick = async function (e) { e.preventDefault(); e.stopPropagation(); if (!canChange() || !present(a) || renderedRevision === undefined)
+                return; await mutateCollection({ kind: "delete", id: a.id, revision: renderedRevision }); };
             it.appendChild(state);
             it.appendChild(n);
             it.appendChild(b);
@@ -1647,19 +1869,22 @@
         return; S.mode = !S.mode; render(); };
     bTarget.onclick = function () { if (!live())
         return; S.targetMode = S.targetMode === "element" ? "text" : "element"; render(); };
-    bClear.onclick = function () {
-        if (!live())
+    async function clearCollection(ask = false) {
+        if (!canChange() || editingItem)
             return;
-        if (confirm("Clear all annotations collected on this site?") && live()) {
-            cancelPending(); // clean up any pending annotation
-            S.items.forEach(function (a) { if (a.type === "text")
-                removeTextMark(a.id); });
-            S.items = [];
-            seq = 0;
-            save();
+        var revision = collectionRevision;
+        if (ask && !confirm("Clear all annotations collected on this site?"))
+            return;
+        if (!canChange())
+            return;
+        var reply = await mutateCollection({ kind: "clear", revision: revision });
+        if (live() && reply?.ok) {
+            cancelPending();
+            storageMessageText = "";
             render();
         }
-    };
+    }
+    bClear.onclick = function () { return clearCollection(true); };
     // ---------- public API ----------
     S.show = function () { if (live() && panel)
         panel.style.display = "flex"; };
@@ -1669,8 +1894,7 @@
     S.copy = copyMarkdown; // background (Alt+Shift+C) calls this public method, not the closure
     S.copyJson = copyJson; // Alt+Shift+J
     S.copyPrompt = copyPrompt;
-    S.clear = function () { if (!live())
-        return; S.items = []; save(); render(); };
+    S.clear = function () { return clearCollection(); };
     // Flip from passive display to interactive capture.
     S.activate = function () { if (!live())
         return; S.mode = true; render(); };
@@ -1682,6 +1906,8 @@
         S.installed = false;
         S.ready = false;
         try {
+            stopStorage?.();
+            stopStorage = undefined;
             window.removeEventListener(INSTANCE_EVENT, onInstanceChanged);
             document.removeEventListener("DOMContentLoaded", mount);
             document.removeEventListener("mousemove", onMove, true);
@@ -1736,20 +1962,40 @@
         }
         return "pi-web-annotator: removed";
     };
-    function finishSetup(items) {
+    function finishSetup(collection) {
         if (!live())
             return;
-        S.items = items;
-        seq = S.items.reduce(function (maximum, item) { return Math.max(maximum, item.id || 0); }, 0);
+        if (collection) {
+            try {
+                applyCollection(collection);
+                collectionReady = true;
+            }
+            catch {
+                storageProblem("Saved annotations are invalid. No changes will be saved; retry Reload saved.");
+            }
+        }
+        else if (!storageNeedsReload)
+            storageProblem("Annotations could not be loaded. No changes will be saved; retry Reload saved.");
         S.ready = true;
         if (document.body)
             mount();
         else
             document.addEventListener("DOMContentLoaded", mount, { once: true });
+        applyPendingCollection();
     }
     window.addEventListener(INSTANCE_EVENT, onInstanceChanged);
+    try {
+        stopStorage = itemStore.subscribe(receiveCollection, function (error) { storageProblem(error.message); });
+    }
+    catch {
+        storageProblem("Annotation synchronization is unavailable. Reload the extension before editing.");
+    }
     Promise.all([
-        itemStore.load(normalizeItem).catch(function () { return []; }),
+        itemStore.load().catch(function (error) {
+            if (live())
+                storageProblem("Annotations could not be loaded. " + (error instanceof Error ? error.message : "Retry Reload saved before editing."));
+            return undefined;
+        }),
         globalThis.browser.storage.local.get(PANEL_PLACEMENT_KEY).then(function (stored) {
             return normalizePanelPlacement(stored[PANEL_PLACEMENT_KEY]);
         }, function () { return null; })
@@ -1757,8 +2003,7 @@
         if (!live())
             return;
         panelPlacement = loaded[1];
-        var saved = loaded[0];
-        finishSetup(saved.filter(function (item) { return item !== undefined; }));
+        finishSetup(loaded[0]);
     });
     return "pi-web-annotator: loading";
 })();

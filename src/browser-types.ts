@@ -15,16 +15,27 @@ type AnnotatorState = {
   copy?(): void; copyJson?(): void; copyPrompt?(): void; clear?(): void; activate?(): void; destroy?(): string;
 };
 type ExtensionStorage = {get(key: string): Promise<Record<string, unknown>>; set(update: Record<string, unknown>): Promise<void>};
-type AnnotationStorageOptions = {extensionStorage: ExtensionStorage; origin: string};
-type AnnotationStorage = {key: string; load<T>(normalize: (value: unknown) => T): Promise<T[]>; save(items: unknown[]): Promise<void>};
+type CollectionSnapshot = {schema: 2; revision: number; nextId: number; rows: {revision: number; annotation: unknown}[]};
+type CollectionOperation =
+  | {kind: 'create'; annotation: Omit<Annotation, 'id'>}
+  | {kind: 'update'; id: number; revision: number; annotation: Annotation}
+  | {kind: 'updateMany'; updates: {id: number; revision: number; annotation: Annotation}[]}
+  | {kind: 'delete'; id: number; revision: number}
+  | {kind: 'clear'; revision: number};
+type CollectionReply = {ok: true; collection: CollectionSnapshot; createdId?: number}
+  | {ok: false; reason: 'conflict' | 'storage' | 'invalid'; error: string; collection?: CollectionSnapshot};
+type StorageChanges = Record<string, {oldValue?: unknown; newValue?: unknown}>;
+type StorageChangeEvent = {addListener(listener: (changes: StorageChanges, area: string) => void): void; removeListener(listener: (changes: StorageChanges, area: string) => void): void};
+type AnnotationStorageOptions = {extensionStorage: ExtensionStorage; origin: string; runtime?: {sendMessage(message: unknown): Promise<unknown>}; changes?: StorageChangeEvent};
+type AnnotationStorage = {key: string; load(): Promise<CollectionSnapshot>; mutate(operation: CollectionOperation): Promise<CollectionReply>; subscribe(listener: (collection: CollectionSnapshot) => void, failed: (error: Error) => void): () => void};
 type AnnotationStorageApi = {createAnnotationStorage(options: AnnotationStorageOptions): AnnotationStorage};
 type BrowserTab = {id?: number};
 type BrowserListener<T extends unknown[]> = {addListener(listener: (...args: T) => unknown): void};
 type Injection = {target: {tabId: number}; files?: string[]; args?: unknown[]; func?: (arg?: unknown) => unknown};
 type DataPermission = {data_collection: string[]};
 type AnnotatorBrowser = {
-  storage: {local: ExtensionStorage};
-  runtime: {sendMessage(message: unknown): Promise<unknown>; getURL(path: string): string; onInstalled: BrowserListener<[{reason: string}]>; onMessage: BrowserListener<[unknown]>};
+  storage: {local: ExtensionStorage; onChanged?: StorageChangeEvent};
+  runtime: {sendMessage(message: unknown): Promise<unknown>; getURL(path: string): string; onInstalled: BrowserListener<[{reason: string}]>; onMessage: BrowserListener<[unknown, {url?: string}?]>};
   permissions: {contains(permission: DataPermission): Promise<boolean>; request(permission: DataPermission): Promise<boolean>};
   action: {onClicked: BrowserListener<[BrowserTab]>; setBadgeText(details: {tabId: number; text: string}): void; setBadgeBackgroundColor(details: {tabId: number; color: string}): void; setTitle(details: {tabId: number; title: string}): void};
   scripting: {executeScript(details: Injection): Promise<{result?: unknown}[]>};

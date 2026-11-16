@@ -13,6 +13,7 @@ type ContinuationFixture = {
   calls: HeldCall[];
   loads: HeldLoad[];
   writes: Record<string, unknown>[];
+  values: Record<string, unknown>;
   holdHealth: boolean;
   holdLoad: boolean;
   oldInstance?: AnnotatorState;
@@ -71,16 +72,17 @@ async function fixture(t: TestContext, options: {holdLoad?: boolean; holdHealth?
     }
   });
   await addBrowserFixture(page, () => {
-    const state: ContinuationFixture = {calls: [], loads: [], writes: [], holdHealth: false, holdLoad: false};
+    const state: ContinuationFixture = {calls: [], loads: [], writes: [], values: {}, holdHealth: false, holdLoad: false};
     globalThis.__sendContinuations = state;
     globalThis.browser = {...createBrowserFixture(),
       storage: {local: {
         async get(key) {
           if (state.holdLoad) return new Promise<Record<string, unknown>>((release) => state.loads.push({key, release}));
-          return {};
+          return {[key]: structuredClone(state.values[key])};
         },
         async set(values) {
           state.writes.push(structuredClone(values));
+          Object.assign(state.values, structuredClone(values));
         },
       }},
       runtime: {...createBrowserFixture().runtime,
@@ -111,13 +113,14 @@ async function fixture(t: TestContext, options: {holdLoad?: boolean; holdHealth?
 }
 
 async function seed(page: Page, count = 1) {
-  await page.evaluate((count) => {
+  await page.evaluate(async (count) => {
     const state = globalThis.__piWebAnnotator;
     if (!state?.ready || !state.activate) throw new Error('Annotator did not finish setup');
-    state.items = Array.from({length: count}, (_, index): Annotation => ({
+    const rows = Array.from({length: count}, (_, index) => ({revision: 1, annotation: {
       id: index + 1, type: 'element', selector: 'h1', tag: 'h1', note: `Synthetic change ${index + 1}`,
       pageKey: location.href, pageUrl: location.href, rect: {x: 0, y: 0, w: 10, h: 10}, ts: 0, piStatus: 'pending',
-    }));
+    } satisfies Annotation}));
+    await globalThis.browser.storage.local.set({['pi-web-annotator:collection:v2:' + location.origin]: {schema: 2, revision: 1, nextId: count + 1, rows}});
     state.activate();
   }, count);
   await flush(page);
@@ -197,6 +200,61 @@ async function effects(page: Page) {
     installed: globalThis.__piWebAnnotator !== undefined,
   }));
 }
+
+test('an already-confirmed matching Pi status mirror does not force a cross-tab reload', async (t) => {
+  const page = await fixture(t);
+  await seed(page, 2);
+  const id = await beginSend(page);
+  // Simulate a second tab's persisted mirror with its storage event still held.
+  await page.evaluate(() => {
+    const state = globalThis.__piWebAnnotator;
+    if (!state) throw Error('Missing state');
+    const annotation: Annotation = {...state.items[0], piStatus: 'in_progress'};
+    delete annotation.piSendingAt;
+    globalThis.__sendContinuations.values['pi-web-annotator:collection:v2:' + location.origin] = {
+      schema: 2, revision: 3, nextId: 3, rows: [{revision: 3, annotation}, {revision: 1, annotation: {...state.items[1]}}],
+    };
+  });
+  await poll(page);
+  await release(page, 'status', 0, {ok: true, jobs: {[id]: 'in_progress'}});
+  assert.equal(await page.getByRole('button', {name: 'Send annotation 2 to Pi', exact: true}).isDisabled(), false,
+    'an identical persisted mirror is not an unsaved user conflict');
+  assert.equal(await page.getByRole('alert', {name: 'Annotation storage'}).isVisible(), false);
+  await release(page, 'send', 0, {ok: true, status: 'sent'});
+  assert.deepEqual(await rows(page), [{id: 1, status: 'in_progress', job: id}, {id: 2, status: 'pending', job: undefined}]);
+});
+
+test('rich captured metadata keeps ownership through its own confirmed sending update', async (t) => {
+  const page = await fixture(t);
+  await seed(page);
+  await page.evaluate(async () => {
+    const state = globalThis.__piWebAnnotator;
+    if (!state) throw Error('Missing state');
+    const annotation: Annotation = {...state.items[0], attrs: {'data-testid': 'synthetic'}, styles: {display: 'block'}, src: {fw: 'Synthetic', comp: 'Synthetic'}};
+    await globalThis.browser.runtime.sendMessage({type: 'pi-web-annotator-storage', origin: location.origin,
+      operation: {kind: 'update', id: 1, revision: 1, annotation}});
+  });
+  const id = await beginSend(page);
+  await release(page, 'send', 0, {ok: true, status: 'sent'});
+  assert.deepEqual(await rows(page), [{id: 1, status: 'sent', job: id}]);
+});
+
+test('a foreign row revision invalidates held consent even when annotation values are unchanged', async (t) => {
+  const page = await fixture(t);
+  await seed(page);
+  await button(page, 'Send annotation 1 to Pi');
+  await page.evaluate(async () => {
+    const state = globalThis.__piWebAnnotator;
+    if (!state) throw Error('Missing state');
+    await globalThis.browser.runtime.sendMessage({type: 'pi-web-annotator-storage', origin: location.origin,
+      operation: {kind: 'update', id: 1, revision: 1, annotation: {...state.items[0]}}});
+  });
+  await release(page, 'consent', 0, {granted: true});
+  assert.equal(await count(page, 'send'), 0, 'a superseding row revision must revoke the old claim');
+  const id = await beginSend(page);
+  await release(page, 'send', 0, {ok: true, status: 'sent'});
+  assert.deepEqual(await rows(page), [{id: 1, status: 'sent', job: id}]);
+});
 
 test('shared-row overlap while consent is held never submits twice, including after a failed first POST', async (t) => {
   const page = await fixture(t);
@@ -397,7 +455,13 @@ test('destroyed setup cannot mount over or delete a reinjected instance when old
   const page = await fixture(t, {holdLoad: true});
   assert.equal(await page.evaluate(() => globalThis.__sendContinuations.loads.length), 2);
   await destroy(page);
-  await page.evaluate(() => { globalThis.__sendContinuations.holdLoad = false; });
+  await page.evaluate(() => {
+    globalThis.__sendContinuations.holdLoad = false;
+    // Let the serialized broker read drain, keeping old placement/setup held.
+    const read = globalThis.__sendContinuations.loads.find((load) => load.key.includes(':collection:'));
+    if (!read?.release) throw Error('Missing held collection read');
+    read.release({}); read.release = undefined;
+  });
   await inject(page);
   await seed(page);
   const before = await effects(page);
@@ -450,7 +514,19 @@ test('mounted replacement retires old controls and intervals without damaging su
     timers.clearInterval = (id) => { if (id !== undefined) active.delete(id); stop(id); };
   });
   await inject(page);
-  await seed(page);
+  await page.evaluate(() => {
+    const state = globalThis.__piWebAnnotator, selection = window.getSelection();
+    if (!state?.activate || !selection) throw Error('Missing capture fixture');
+    const text = document.createElement('p');
+    text.id = 'replacement-text'; text.textContent = 'Synthetic shared text mark'; document.body.appendChild(text);
+    state.targetMode = 'text'; state.activate();
+    const range = document.createRange(); range.selectNodeContents(text);
+    selection.removeAllRanges(); selection.addRange(range);
+    document.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
+  });
+  await page.clock.runFor(220); await flush(page);
+  await page.getByLabel('Annotation note').fill('Synthetic saved predecessor note');
+  await button(page, 'Save');
   await page.evaluate(() => {
     const node = document.querySelector('[aria-label="Delete annotation 1"]');
     if (!(node instanceof HTMLButtonElement)) throw Error('Missing stale control');
@@ -462,19 +538,8 @@ test('mounted replacement retires old controls and intervals without damaging su
   assert.equal(await page.locator('#bh-panel').count(), 1, 'replacement must remove the mounted predecessor');
   assert.equal(await page.evaluate(() => globalThis.__sendContinuations.activeIntervals?.size), 1,
     'only the successor polling interval may remain');
-  await page.evaluate(() => {
-    const state = globalThis.__piWebAnnotator, heading = document.querySelector('h1'), selection = window.getSelection();
-    if (!state?.activate || !heading || !selection) throw Error('Missing current capture fixture');
-    state.targetMode = 'text';
-    state.activate();
-    const range = document.createRange();
-    range.selectNodeContents(heading);
-    selection.removeAllRanges(); selection.addRange(range);
-    document.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
-  });
-  await page.clock.runFor(220);
-  await flush(page);
-  assert.equal(await page.locator('mark[data-bh-anno-id="1"]').count(), 1);
+  assert.equal(await page.locator('mark[data-bh-anno-id="1"]').count(), 1,
+    'the successor must restore its own saved text mark');
   await page.evaluate(() => globalThis.__sendContinuations.staleDelete?.click());
   await flush(page);
   assert.equal(await page.locator('mark[data-bh-anno-id="1"]').count(), 1, 'stale Delete cannot remove the successor mark');
@@ -498,6 +563,9 @@ test('a replaced namespace fences old setup, listeners and teardown', async (t) 
     globalThis.__sendContinuations.oldInstance = state;
     delete globalThis.__piWebAnnotator;
     globalThis.__sendContinuations.holdLoad = false;
+    const read = globalThis.__sendContinuations.loads.find((load) => load.key.includes(':collection:'));
+    if (!read?.release) throw Error('Missing held collection read');
+    read.release({}); read.release = undefined;
   });
   await inject(page);
   await seed(page);
@@ -546,13 +614,12 @@ test('an older send flash cannot erase newer failure feedback', async (t) => {
   await button(page, 'Send to Pi');
   await release(page, 'consent', 0, {granted: true});
   await release(page, 'send', 0, {ok: true, status: 'sent'});
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const state = globalThis.__piWebAnnotator;
     if (!state?.activate) throw Error('Missing state');
     const item: Annotation = {...state.items[0], id: 2, note: 'Synthetic second change', piStatus: 'pending'};
     delete item.piJobId;
-    state.items.push(item);
-    state.activate();
+    await globalThis.browser.runtime.sendMessage({type: 'pi-web-annotator-storage', origin: location.origin, operation: {kind: 'create', annotation: item}});
   });
   await page.clock.runFor(1_000);
   await button(page, 'Sent');

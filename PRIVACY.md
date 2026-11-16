@@ -6,7 +6,7 @@ Web Annotator for Pi has no developer-operated backend, analytics or advertising
 
 ## Data kept in Firefox
 
-When you save an annotation, the extension stores a separate collection for that website in Firefox extension storage under a `pi-web-annotator:collection:v1:` key. It also stores the panel's normalized screen placement under `pi-web-annotator:panel-placement:v1` so the panel remains where you moved it after navigation. Collections in website `localStorage` are not imported, changed, or deleted. A saved item can include:
+The reviewed 2.0.4 candidate stores a separate collection for each website in Firefox extension storage under a `pi-web-annotator:collection:v2:` key. Version 2.0.3 uses `pi-web-annotator:collection:v1:` arrays. On first access, the candidate confirms the new collection before emptying its legacy array; interrupted cleanup is retried without reimporting old notes. The new envelope stores collection/row revisions and an increasing ID counter, not deleted-note history. It also stores the panel's normalized screen placement under `pi-web-annotator:panel-placement:v1` so the panel remains where you moved it after navigation. Collections in website `localStorage` are not imported, changed, or deleted. A saved item can include:
 
 - your note;
 - the full page URL, including query and fragment;
@@ -16,7 +16,9 @@ When you save an annotation, the extension stores a separate collection for that
 
 Collections are grouped by origin (scheme, host and port) across pages. Page scripts cannot directly access Firefox extension storage. However, notes appear in ordinary page DOM rows, editor controls and pin titles that the visited page can inspect or alter. This is not a confidential overlay. Capture does not exclude sensitive elements or automatically redact secrets. Do not put secrets in annotations.
 
-Storage writes are asynchronous and failures are not reported in the panel; a visible saved row does not prove durable persistence. Concurrent tabs can overwrite their collection snapshots. Use **Clear** to remove the origin's collection; this does not retract clipboard copies, Pi messages, provider data or edits already made.
+In the candidate, an on-device background coordinator serializes same-origin mutations against fresh stored data and publishes committed changes to enabled tabs. Independent changes are preserved; stale edits, deletes and Clear operations report conflicts. Save waits for storage confirmation. Failed or unconfirmed saves retain the editor draft and require **Reload saved** before more changes; a lost reply can mean a write committed, so inspect the saved collection before explicitly retrying. Older injected writers are unsupported: reload all previously enabled tabs after upgrading.
+
+**Clear** removes saved annotations, not the origin key, revision/ID counters or panel placement. Delete removes one saved annotation. Unsaved drafts in other tabs remain in memory until dismissed or the page closes. Neither action retracts clipboard copies, Pi messages, provider data, edits already made or writes already admitted. Panel-placement failures remain silent.
 
 The extension is not available in private windows, so it does not save private-browsing annotations. It writes to the clipboard only when you use a copy action or shortcut.
 
@@ -38,7 +40,7 @@ An overlay reserves selected rows while consent is checked. Clear, Delete, manua
 
 Firefox blocks extension injection on protected pages such as `about:` pages, the Firefox Add-ons site, PDFs, and `view-source:` pages.
 
-For the source-grounded capture, export and job lifecycle details, read the [behavior walkthrough](docs/extension-walkthrough.md). These source clarifications include the reviewed 2.0.4 candidate's browser-relay permission checks and send/lifecycle fences, without adding data categories, destinations or Firefox permissions. Source review does not establish publication or the version loaded by an installed browser.
+For the source-grounded capture, export and job lifecycle details, read the [behavior walkthrough](docs/extension-walkthrough.md). These source clarifications include the reviewed 2.0.4 candidate's browser-relay permission checks and send/lifecycle fences, and cross-tab storage coordination, including revision/ID metadata. They add no network destination or Firefox permission. Source review does not establish publication or the version loaded by an installed browser.
 
 ## Changes and questions
 

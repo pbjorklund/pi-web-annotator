@@ -8,6 +8,8 @@ Web Annotator for Pi adds an on-page review layer to Firefox. Click an element o
 
 Use it when visual webpage review needs exact element or selected-text context. Do not use it for automated accessibility audits, remote team review, Firefox for Android, or pages whose secrets must not enter browser storage or an agent transcript. The Firefox extension works without PI; install the bridge only when direct local delivery is useful.
 
+This README describes the 2.0.4 source candidate, not necessarily the version installed from Firefox Add-ons.
+
 Read the [behavior walkthrough](https://github.com/pbjorklund/pi-web-annotator/blob/main/docs/extension-walkthrough.md) for the full capture, storage, export, bridge lifecycle and privacy contract.
 
 ## Features
@@ -16,6 +18,7 @@ Read the [behavior walkthrough](https://github.com/pbjorklund/pi-web-annotator/b
 - **Text annotations:** select a phrase or paragraph and keep the quoted text with the note.
 - **Source-friendly context:** capture element attributes, text, component hints when available, and a positional fallback.
 - **Cross-page collections:** keep one review collection while navigating within the same site.
+- **Cross-tab coordination:** preserve independent changes across same-origin tabs; report competing edits instead of overwriting them.
 - **Movable review panel:** drag the panel out of the way or dock it by keyboard; its placement survives navigation.
 - **Editable notes:** revise a pending annotation without recapturing its element or selected text.
 - **Pi-ready export:** copy one annotation as Markdown, or the full collection as Markdown or JSON.
@@ -49,6 +52,14 @@ To test an unreleased change, follow the temporary installation steps in [CONTRI
 3. Write the requested change and save it.
 
 Text annotations use an amber highlight. A green outline previews the hovered element; saved annotations use numbered pins. Numbered pins expand to fit longer IDs and stack vertically when comments would overlap, including multiple comments on the same element.
+
+### Save and synchronize
+
+Save waits for Firefox storage confirmation; **Save and send** does not submit an unconfirmed note. Same-origin tabs receive committed changes. Independent creates, edits and deletes are preserved; a stale edit, delete or Clear is rejected so it cannot overwrite another tab's newer work. Saved IDs are allocated centrally and not reused after Delete or Clear.
+
+A failed or unconfirmed write keeps the draft and shows **Reload saved** in the editor. Collection changes stay blocked until a successful reload. Review the saved collection before explicitly retrying: a lost reply can mean the write committed. Reload does not discard the draft or retry saving/sending automatically.
+
+After upgrading, reload every previously enabled tab before continuing. Older injected writers are not coordinated with the new storage format. Existing Firefox collections migrate on first access; website `localStorage` is untouched.
 
 ### Export a review
 

@@ -9,6 +9,11 @@
 - Reserve selected rows before consent, skip overlapping claims without queued retries, and allow disjoint rows to progress. Fence late send/status responses to their current row, job and revision.
 - Retire destroyed or replaced overlays across setup, polling, consent, sends and delayed UI callbacks. Preserve explicit retry; requests and storage writes already admitted cannot be undone, and retrying can duplicate Pi work.
 
+- Coordinate same-origin collection mutations in the background against fresh storage, preserving independent cross-tab changes and rejecting stale edit/delete/Clear conflicts. Allocate IDs centrally without reuse after deletion or Clear.
+- Migrate legacy Firefox collections to revisioned storage with retryable cleanup; do not import website localStorage or retain deleted-note history. Reload all previously enabled tabs after upgrading; mixed old writers are unsupported.
+- Confirm persistence before committing visible edits or sending new notes. Keep drafts and show accessible Reload saved recovery after failed/unconfirmed writes; never turn a failed load into an empty overwrite.
+- Recheck owned rows after sending-state persistence before constructing the Pi payload, excluding notes another tab deleted. Cover broker, migration, conflicts and save recovery with isolated synthetic two-tab tests.
+
 ## 2.0.3
 
 - Include versioned release notes in Git and npm packages for Pi 1.5 update notices.
